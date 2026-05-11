@@ -1,4 +1,4 @@
-import { get, ref, set } from 'firebase/database'
+import { get, ref, remove, set } from 'firebase/database'
 import { database } from './firebase'
 import { DEFAULT_MATERIALS } from './materials'
 
@@ -41,6 +41,14 @@ function materialsRecord(materials) {
   )
 }
 
+export function createMaterialId(label) {
+  const base = String(label || 'materiaal')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+  return `${base || 'materiaal'}-${Date.now()}`
+}
+
 export async function loadMaterials() {
   if (!database) {
     return {
@@ -73,4 +81,18 @@ export async function loadMaterials() {
       message: `Firebase-materialen laden mislukt: ${error.message}`,
     }
   }
+}
+
+export async function saveMaterial(material) {
+  if (!database) throw new Error('Firebase is nog niet geconfigureerd.')
+
+  const materialId = material.id || createMaterialId(material.materiaal)
+  const normalized = normalizeMaterial(material, materialId, material.sortOrder ?? 0)
+  await set(ref(database, `${MATERIALS_PATH}/${materialId}`), normalized)
+  return normalized
+}
+
+export async function deleteMaterial(materialId) {
+  if (!database) throw new Error('Firebase is nog niet geconfigureerd.')
+  await remove(ref(database, `${MATERIALS_PATH}/${materialId}`))
 }

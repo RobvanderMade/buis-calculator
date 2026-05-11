@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
+import Backoffice from './Backoffice.jsx'
 import SiteHeader from './SiteHeader.jsx'
 import PipeCanvas from './PipeCanvas.jsx'
 import { DEFAULT_MATERIALS } from './materials.js'
 import { loadMaterials } from './materialRepository.js'
+import { createRequest } from './requestRepository.js'
 import {
   calculatePricePerStuk,
   calculateTotalLength,
@@ -33,6 +35,8 @@ export default function App() {
   const [aantalStuks, setAantalStuks] = useState(1)
   const [view, setView] = useState('XY')
   const [isGridFullscreen, setIsGridFullscreen] = useState(false)
+  const [activePage, setActivePage] = useState('calculator')
+  const [requestStatus, setRequestStatus] = useState('')
 
   const lines = useMemo(
     () => rows.map((r) => ({ x: parseCoord(r.x), y: parseCoord(r.y), z: parseCoord(r.z) })),
@@ -115,40 +119,29 @@ export default function App() {
     alert(res.message)
   }
 
-  async function exportPdf() {
-    const { jsPDF } = await import('jspdf')
-    const doc = new jsPDF()
-    doc.setFontSize(16)
-    doc.text('Online Calculator Buis Buigen - Vandema Products', 10, 10)
-    const matLabel = material?.materiaal ?? ''
-    doc.setFontSize(12)
-    doc.text(`Materiaal: ${matLabel}`, 10, 30)
-    doc.text('Coördinaten:', 10, 40)
-    let yPosition = 50
-    lines.forEach((line, i) => {
-      doc.text(`Regel ${i + 1}: X=${line.x} Y=${line.y} Z=${line.z}`, 10, yPosition)
-      yPosition += 10
-    })
-    const stuks = Math.max(1, parseInt(String(aantalStuks), 10) || 1)
-    yPosition += 10
-    doc.text(`Gestrekte lengte (mm): ${totalLength.toFixed(2)}`, 10, yPosition)
-    yPosition += 10
-    doc.text(`Aantal stuks: ${stuks}`, 10, yPosition)
-    yPosition += 10
-    doc.text(`Prijs per stuk: ${displayPrijsPerStuk.toFixed(2)} €`, 10, yPosition)
-    yPosition += 10
-    doc.text(
-      'De prijzen zijn exclusief 21% BTW en onder voorbehoud van goedkeuring door onze engineer',
-      10,
-      yPosition,
-    )
-    yPosition += 10
-    doc.text(
-      'Andere bewerkingen zoals restlengte inkorten, lassen etc. op aanvraag',
-      10,
-      yPosition,
-    )
-    doc.save('buis_berekeningen.pdf')
+  async function submitRequest() {
+    setRequestStatus('')
+
+    const validation = validateLines(lines, material)
+    if (!validation.ok) {
+      setRequestStatus(validation.message)
+      return
+    }
+
+    try {
+      const stuks = Math.max(1, parseInt(String(aantalStuks), 10) || 1)
+      await createRequest({
+        material,
+        lines,
+        totalLength,
+        aantalStuks: stuks,
+        prijsPerStuk: displayPrijsPerStuk,
+        totaalPrijs: displayPrijsPerStuk * stuks,
+      })
+      setRequestStatus('Aanvraag aangemaakt. Wij nemen deze in behandeling.')
+    } catch (error) {
+      setRequestStatus(`Aanvraag opslaan mislukt: ${error.message}`)
+    }
   }
 
   return (
@@ -156,7 +149,26 @@ export default function App() {
       <SiteHeader />
       <div className="site-main">
         {computed.error ? <div className="error-banner">{computed.error}</div> : null}
+        <div className="page-nav row-btns">
+          <button
+            type="button"
+            className={activePage === 'calculator' ? 'view-active' : ''}
+            onClick={() => setActivePage('calculator')}
+          >
+            Calculator
+          </button>
+          <button
+            type="button"
+            className={activePage === 'backoffice' ? 'view-active' : ''}
+            onClick={() => setActivePage('backoffice')}
+          >
+            Backoffice
+          </button>
+        </div>
 
+        {activePage === 'backoffice' ? (
+          <Backoffice />
+        ) : (
         <div className="container">
         <div className="panel stack">
           <div>
@@ -245,15 +257,16 @@ export default function App() {
           </div>
 
           <p className="hint">
-            Is de invoer gecontroleerd? Sla dan de gegevens op als PDF-bestand en verzend dit met de
-            aanvraag.
+            Is de invoer gecontroleerd? Maak dan de aanvraag aan. Deze verschijnt automatisch in de
+            backoffice.
           </p>
 
           <div className="row-btns">
-            <button type="button" className="primary" onClick={exportPdf}>
-              Opslaan als PDF-bestand
+            <button type="button" className="primary" onClick={submitRequest}>
+              Aanvraag aanmaken
             </button>
           </div>
+          {requestStatus ? <p className="status-text">{requestStatus}</p> : null}
 
           <div>
             <label htmlFor="prijsPerStuk">Prijs per stuk (in €):</label>
@@ -335,7 +348,8 @@ export default function App() {
             </div>
           ) : null}
         </div>
-      </div>
+        </div>
+        )}
       </div>
     </div>
   )

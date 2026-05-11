@@ -249,7 +249,10 @@ button.view-active {
 }
 
 select,
+input[type='email'],
 input[type='number'],
+input[type='password'],
+input[type='text'],
 input[readonly] {
   font: inherit;
   padding: 6px 8px;
@@ -280,6 +283,75 @@ input[readonly] {
   padding: 10px 12px;
   border-radius: 4px;
   margin-bottom: 12px;
+}
+
+.page-nav {
+  margin-bottom: 16px;
+}
+
+.backoffice {
+  width: 100%;
+}
+
+.backoffice-login {
+  max-width: 420px;
+}
+
+.backoffice label,
+.backoffice-login label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-weight: 600;
+}
+
+.backoffice-header,
+.data-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.material-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.material-form .row-btns {
+  align-items: end;
+}
+
+.card-list {
+  display: grid;
+  gap: 12px;
+}
+
+.data-card {
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+table.admin-table {
+  max-width: none;
+  min-width: 760px;
+}
+
+table.admin-table th:first-child,
+table.admin-table td:first-child {
+  width: auto;
 }
 
 @media (max-width: 720px) {
