@@ -137,7 +137,11 @@ export default function App() {
   async function handleLogin(nextSession) {
     let customerProfile = nextSession.customerProfile ?? null
     if (nextSession.role === 'customer' && !customerProfile) {
-      customerProfile = await loadCustomerProfile(nextSession.user.uid)
+      try {
+        customerProfile = await loadCustomerProfile(nextSession.user.uid)
+      } catch {
+        customerProfile = null
+      }
     }
     setSession({ ...nextSession, customerProfile })
     setLoginPanelOpen(false)
@@ -164,14 +168,14 @@ export default function App() {
     setRequestStatus('')
 
     if (session?.role !== 'customer') {
-      setRequestStatus('Maak eerst een My BendR klantaccount aan of log in om een aanvraag te versturen.')
+      setRequestStatus('Maak eerst een My BendR account aan of log in om een aanvraag te versturen.')
       setLoginInitialMode('register')
       setLoginPanelOpen(true)
       return
     }
 
     if (!session.customerProfile) {
-      setRequestStatus('Vul eerst je klantprofiel aan voordat je een aanvraag verstuurt.')
+      setRequestStatus('Vul eerst je accountgegevens aan voordat je een aanvraag verstuurt.')
       setLoginPanelOpen(true)
       return
     }
@@ -206,6 +210,7 @@ export default function App() {
       <SiteHeader
         accountLabel="My BendR"
         isLoggedIn={Boolean(session)}
+        showBackButton={Boolean(session) && (isAdminPage || activePage === 'customer')}
         onAccountClick={() => {
           if (session?.role === 'customer') {
             navigate('/')
@@ -222,11 +227,6 @@ export default function App() {
           setActivePage('calculator')
         }}
         onLogoutClick={handleLogout}
-        showRegisterButton={!session}
-        onRegisterClick={() => {
-          setLoginInitialMode('register')
-          setLoginPanelOpen(true)
-        }}
       />
       <div className="site-main">
         {computed.error ? <div className="error-banner">{computed.error}</div> : null}
@@ -338,7 +338,7 @@ export default function App() {
           </div>
 
           <p className="hint">
-            Is de invoer gecontroleerd? Log in met My BendR of maak een klantaccount aan om de aanvraag te
+            Is de invoer gecontroleerd? Log in met My BendR of maak een account aan om de aanvraag te
             versturen.
           </p>
 

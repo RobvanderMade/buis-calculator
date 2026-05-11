@@ -123,7 +123,7 @@ export default function Backoffice({ user, role, customerProfile, onLogout }) {
         <div>
           <h2>{isAdmin ? 'Backoffice' : 'My BendR account'}</h2>
           <p className="status-text">
-            Ingelogd als {user.email} ({isAdmin ? 'admin' : 'klant'})
+            Ingelogd als {user.email} ({isAdmin ? 'admin' : 'My BendR'})
           </p>
         </div>
         <button type="button" onClick={onLogout}>
@@ -201,7 +201,7 @@ export default function Backoffice({ user, role, customerProfile, onLogout }) {
                   <strong>{request.material?.materiaal || 'Onbekend materiaal'}</strong>
                   <span>{formatDate(request.createdAt)}</span>
                 </div>
-                {isAdmin && request.customerEmail ? <p>Klant: {request.customerEmail}</p> : null}
+                {isAdmin && request.customerEmail ? <p>Account: {request.customerEmail}</p> : null}
                 {isAdmin && request.customerProfile ? (
                   <p className="hint">
                     {request.customerProfile.company ? `${request.customerProfile.company} | ` : ''}

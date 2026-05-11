@@ -29,6 +29,8 @@ function LogoMark() {
   )
 }
 
+import { useState } from 'react'
+
 function LoginIcon() {
   return (
     <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
@@ -46,12 +48,31 @@ function LoginIcon() {
 export default function SiteHeader({
   accountLabel = 'Inloggen',
   isLoggedIn = false,
-  showRegisterButton = false,
+  showBackButton = false,
   onAccountClick,
   onHomeClick,
   onLogoutClick,
-  onRegisterClick,
 }) {
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  function handleAccountButtonClick() {
+    if (isLoggedIn) {
+      setMenuOpen((open) => !open)
+      return
+    }
+    onAccountClick()
+  }
+
+  function handleMenuAccountClick() {
+    setMenuOpen(false)
+    onAccountClick()
+  }
+
+  function handleMenuLogoutClick() {
+    setMenuOpen(false)
+    onLogoutClick()
+  }
+
   return (
     <header className="site-header">
       <div className="site-header__inner">
@@ -63,27 +84,22 @@ export default function SiteHeader({
           </div>
         </div>
         <div className="site-header__actions">
-          {isLoggedIn ? (
+          {showBackButton ? (
             <button type="button" className="site-header__login" onClick={onHomeClick}>
               <span>Terug</span>
             </button>
           ) : null}
-          {showRegisterButton ? (
-            <button type="button" className="site-header__login" onClick={onRegisterClick}>
-              <span>Account toevoegen</span>
-            </button>
-          ) : null}
           <div className="site-header__account">
-            <button type="button" className="site-header__login" onClick={onAccountClick}>
+            <button type="button" className="site-header__login" onClick={handleAccountButtonClick}>
               <LoginIcon />
               <span>{accountLabel}</span>
             </button>
-            {isLoggedIn ? (
-              <div className="site-header__menu">
-                <button type="button" onClick={onAccountClick}>
+            {isLoggedIn && menuOpen ? (
+              <div className="site-header__menu" onMouseLeave={() => setMenuOpen(false)}>
+                <button type="button" onClick={handleMenuAccountClick}>
                   Account
                 </button>
-                <button type="button" onClick={onLogoutClick}>
+                <button type="button" onClick={handleMenuLogoutClick}>
                   Uitloggen
                 </button>
               </div>

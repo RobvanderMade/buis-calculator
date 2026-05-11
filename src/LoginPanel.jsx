@@ -52,6 +52,7 @@ export default function LoginPanel({
       let customerProfile = null
       if (mode === 'register' && role === 'customer') {
         customerProfile = await saveCustomerProfile(result.user.uid, {
+          uid: result.user.uid,
           ...profile,
           email,
           createdAt: new Date().toISOString(),
@@ -82,7 +83,7 @@ export default function LoginPanel({
             className={role === 'customer' ? 'view-active' : ''}
             onClick={() => selectRole('customer')}
           >
-            Klant
+            My BendR
           </button>
           <button
             type="button"
@@ -207,7 +208,9 @@ export default function LoginPanel({
               ? 'Account aanmaken'
               : mode === 'reset'
                 ? 'Reset e-mail versturen'
-                : `Inloggen als ${role === 'admin' ? 'admin' : 'klant'}`}
+                : role === 'admin'
+                  ? 'Inloggen als admin'
+                  : 'Inloggen'}
           </button>
         </form>
         {message ? <p className="status-text">{message}</p> : null}

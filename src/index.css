@@ -95,21 +95,16 @@ body.modal-open {
 
 .site-header__menu {
   position: absolute;
-  top: calc(100% + 6px);
+  top: 100%;
   right: 0;
   z-index: 20;
-  display: none;
+  display: grid;
+  gap: 4px;
   min-width: 160px;
-  padding: 6px;
+  padding: 12px 6px 6px;
   border-radius: 6px;
   background: #fff;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
-}
-
-.site-header__account:hover .site-header__menu,
-.site-header__account:focus-within .site-header__menu {
-  display: grid;
-  gap: 4px;
 }
 
 .site-header__menu button {
