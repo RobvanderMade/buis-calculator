@@ -104,7 +104,7 @@ function arcSamplePoints(O, r, Q1, Q2, cornerP) {
 }
 
 /** Totale buitenmaat van het aanzicht (projectie + halve buis rond middenas) */
-function OverallViewDimensions({ bbox, scale, view, H }) {
+function OverallViewDimensions({ bbox, scale, view, H, W }) {
   const { minSx, maxSx, minSy, maxSy } = bbox
   const widthMm = (maxSx - minSx) / scale
   const heightMm = (maxSy - minSy) / scale
@@ -123,12 +123,20 @@ function OverallViewDimensions({ bbox, scale, view, H }) {
   const yRef = dimBelow ? maxSy : minSy
   const yTick = dimBelow ? 1 : -1
 
-  let xDim = minSx - 38
+  /** Ruimte voor verticale maat + gedraaide tekst binnen het SVG (grid) */
+  const xEdgeSafe = 64
+  let xDim = minSx - 32
   let xRef = minSx
-  if (xDim < 22) {
-    xDim = maxSx + 38
+  if (xDim < xEdgeSafe) {
+    xDim = maxSx + 32
     xRef = maxSx
   }
+  if (xDim > W - xEdgeSafe) {
+    xDim = minSx - 32
+    xRef = minSx
+    if (xDim < xEdgeSafe) xDim = xEdgeSafe
+  }
+  xDim = Math.max(xEdgeSafe, Math.min(W - xEdgeSafe, xDim))
 
   const tick = 6
   const wLab = `Breedte (${horizAxis}): ${fmt(widthMm)} mm`
@@ -524,7 +532,7 @@ export default function PipeCanvas({ lines, view, radiusMm = 0, diameterMm = 0 }
       <g>
         {pipeGraphics}
         {dimensionsOut}
-        <OverallViewDimensions bbox={bbox} scale={scale} view={view} H={H} />
+        <OverallViewDimensions bbox={bbox} scale={scale} view={view} H={H} W={W} />
       </g>
     )
   }, [lines, view, W, H, padding, radiusMm, diameterMm])
