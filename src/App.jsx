@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import SiteHeader from './SiteHeader.jsx'
 import PipeCanvas from './PipeCanvas.jsx'
 import { MATERIALS } from './materials.js'
 import {
@@ -101,11 +102,12 @@ export default function App() {
   }
 
   return (
-    <>
-      <h1>Buis visualisatie</h1>
-      {computed.error ? <div className="error-banner">{computed.error}</div> : null}
+    <div className="app">
+      <SiteHeader />
+      <div className="site-main">
+        {computed.error ? <div className="error-banner">{computed.error}</div> : null}
 
-      <div className="container">
+        <div className="container">
         <div className="panel stack">
           <div>
             <label htmlFor="materiaal">
@@ -245,6 +247,7 @@ export default function App() {
           <PipeCanvas lines={lines} view={view} />
         </div>
       </div>
-    </>
+      </div>
+    </div>
   )
 }
