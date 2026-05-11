@@ -1,7 +1,5 @@
 import { useMemo } from 'react'
-import { angleBetween2D, cumulativePoints } from './pipeMath'
-
-const COLORS = ['blue', 'red', 'green', 'orange', 'purple', 'cyan']
+import { cumulativePoints, segmentLength } from './pipeMath'
 
 function arrowPoints(x, y, size, angleDeg) {
   const rad = (angleDeg * Math.PI) / 180
@@ -51,7 +49,7 @@ function cornerFillet2D(A, P, B, radiusPx) {
   return { Q1, Q2, O, r: rEff, P }
 }
 
-/** SVG elliptische boog Q1→Q2 (straal r); kiest korte boog die het dichtst bij hoekpunt P ligt */
+/** SVG-boog Q1→Q2 op cirkel rond O (buigradius in aanzicht) */
 function arcA(O, r, Q1, Q2, cornerP) {
   const ang1 = Math.atan2(Q1.y - O.y, Q1.x - O.x)
   const ang2 = Math.atan2(Q2.y - O.y, Q2.x - O.x)
@@ -76,22 +74,248 @@ function arcA(O, r, Q1, Q2, cornerP) {
   return `A ${r} ${r} 0 ${largeArc} ${sweep} ${Q2.x} ${Q2.y}`
 }
 
+/** Punten op boog voor bbox */
+function arcSamplePoints(O, r, Q1, Q2, cornerP) {
+  const a1 = Math.atan2(Q1.y - O.y, Q1.x - O.x)
+  const a2 = Math.atan2(Q2.y - O.y, Q2.x - O.x)
+  let d = a2 - a1
+  while (d > Math.PI) d -= 2 * Math.PI
+  while (d < -Math.PI) d += 2 * Math.PI
+  const midShort = {
+    x: O.x + r * Math.cos(a1 + d / 2),
+    y: O.y + r * Math.sin(a1 + d / 2),
+  }
+  const dLong = d > 0 ? d - 2 * Math.PI : d + 2 * Math.PI
+  const midLong = {
+    x: O.x + r * Math.cos(a1 + dLong / 2),
+    y: O.y + r * Math.sin(a1 + dLong / 2),
+  }
+  const useShort =
+    Math.hypot(midShort.x - cornerP.x, midShort.y - cornerP.y) <=
+    Math.hypot(midLong.x - cornerP.x, midLong.y - cornerP.y)
+  const eff = useShort ? d : dLong
+  const pts = []
+  for (let i = 0; i <= 14; i++) {
+    const t = i / 14
+    const ang = a1 + t * eff
+    pts.push({ x: O.x + r * Math.cos(ang), y: O.y + r * Math.sin(ang) })
+  }
+  return pts
+}
+
+/** Totale buitenmaat van het aanzicht (projectie + halve buis rond middenas) */
+function OverallViewDimensions({ bbox, scale, view, H }) {
+  const { minSx, maxSx, minSy, maxSy } = bbox
+  const widthMm = (maxSx - minSx) / scale
+  const heightMm = (maxSy - minSy) / scale
+  if (widthMm < 0.5 && heightMm < 0.5) return null
+
+  const horizAxis = view === 'XY' ? 'X' : view === 'XZ' ? 'X' : 'Z'
+  const vertAxis = view === 'XY' ? 'Y' : view === 'XZ' ? 'Z' : 'Y'
+  const fmt = (v) => (Math.abs(v - Math.round(v)) < 0.05 ? String(Math.round(v)) : v.toFixed(1))
+
+  let yDim = maxSy + 34
+  if (yDim > H - 40) {
+    yDim = minSy - 34
+    if (yDim < 26) yDim = Math.min(H - 36, maxSy + 28)
+  }
+  const dimBelow = yDim > maxSy
+  const yRef = dimBelow ? maxSy : minSy
+  const yTick = dimBelow ? 1 : -1
+
+  let xDim = minSx - 38
+  let xRef = minSx
+  if (xDim < 22) {
+    xDim = maxSx + 38
+    xRef = maxSx
+  }
+
+  const tick = 6
+  const wLab = `Breedte (${horizAxis}): ${fmt(widthMm)} mm`
+  const hLab = `Hoogte (${vertAxis}): ${fmt(heightMm)} mm`
+  const midY = (minSy + maxSy) / 2
+
+  return (
+    <g className="pipe-dimension-overall" aria-hidden>
+      <line
+        x1={minSx}
+        y1={yRef}
+        x2={minSx}
+        y2={yDim - yTick * tick}
+        stroke="#555"
+        strokeWidth={1}
+        strokeDasharray="4 3"
+      />
+      <line
+        x1={maxSx}
+        y1={yRef}
+        x2={maxSx}
+        y2={yDim - yTick * tick}
+        stroke="#555"
+        strokeWidth={1}
+        strokeDasharray="4 3"
+      />
+      <line x1={minSx} y1={yDim} x2={maxSx} y2={yDim} stroke="#111" strokeWidth={1.5} />
+      <line x1={minSx} y1={yDim - tick} x2={minSx} y2={yDim + tick} stroke="#111" strokeWidth={1.5} />
+      <line x1={maxSx} y1={yDim - tick} x2={maxSx} y2={yDim + tick} stroke="#111" strokeWidth={1.5} />
+      <text
+        x={(minSx + maxSx) / 2}
+        y={yDim + (dimBelow ? 18 : -12)}
+        fill="#111"
+        fontSize={13}
+        fontWeight={700}
+        textAnchor="middle"
+        paintOrder="stroke"
+        stroke="rgba(255,255,255,0.9)"
+        strokeWidth={4}
+      >
+        {wLab}
+      </text>
+
+      <line x1={xRef} y1={minSy} x2={xDim} y2={minSy} stroke="#555" strokeWidth={1} strokeDasharray="4 3" />
+      <line x1={xRef} y1={maxSy} x2={xDim} y2={maxSy} stroke="#555" strokeWidth={1} strokeDasharray="4 3" />
+      <line x1={xDim} y1={minSy} x2={xDim} y2={maxSy} stroke="#111" strokeWidth={1.5} />
+      <line x1={xDim - tick} y1={minSy} x2={xDim + tick} y2={minSy} stroke="#111" strokeWidth={1.5} />
+      <line x1={xDim - tick} y1={maxSy} x2={xDim + tick} y2={maxSy} stroke="#111" strokeWidth={1.5} />
+      <text
+        x={xDim}
+        y={midY}
+        fill="#111"
+        fontSize={13}
+        fontWeight={700}
+        textAnchor="middle"
+        dominantBaseline="middle"
+        paintOrder="stroke"
+        stroke="rgba(255,255,255,0.9)"
+        strokeWidth={4}
+        transform={`rotate(-90 ${xDim} ${midY})`}
+      >
+        {hLab}
+      </text>
+    </g>
+  )
+}
+
+/** Maatlijn: snijlijn / as midden (3D-lengte tabelregel), evenwijdig aan getekend recht stuk */
+function SnijlijnDimension({
+  x1,
+  y1,
+  x2,
+  y2,
+  lengthMm,
+  pathCx,
+  pathCy,
+  seg,
+}) {
+  const dx = x2 - x1
+  const dy = y2 - y1
+  const lenPx = Math.hypot(dx, dy)
+  if (lenPx < 12) return null
+  const ux = dx / lenPx
+  const uy = dy / lenPx
+  let nx = -uy
+  let ny = ux
+  const mx = (x1 + x2) / 2
+  const my = (y1 + y2) / 2
+  if ((mx - pathCx) * nx + (my - pathCy) * ny < 0) {
+    nx = -nx
+    ny = -ny
+  }
+  const baseOff = 26 + (seg % 4) * 7
+  const ox = nx * baseOff
+  const oy = ny * baseOff
+  const ax1 = x1 + ox
+  const ay1 = y1 + oy
+  const ax2 = x2 + ox
+  const ay2 = y2 + oy
+  const tick = 5
+  const tnx = nx * tick
+  const tny = ny * tick
+  const lenLabel =
+    Math.abs(lengthMm - Math.round(lengthMm)) < 0.05
+      ? String(Math.round(lengthMm))
+      : lengthMm.toFixed(1)
+  const label = `${lenLabel} mm`
+  let angleDeg = (Math.atan2(dy, dx) * 180) / Math.PI
+  if (angleDeg > 90) angleDeg -= 180
+  if (angleDeg < -90) angleDeg += 180
+  const tcx = (ax1 + ax2) / 2
+  const tcy = (ay1 + ay2) / 2
+
+  return (
+    <g className="pipe-dimension" aria-hidden>
+      <line
+        x1={x1}
+        y1={y1}
+        x2={ax1}
+        y2={ay1}
+        stroke="#888"
+        strokeWidth={1}
+        strokeDasharray="3 3"
+      />
+      <line
+        x1={x2}
+        y1={y2}
+        x2={ax2}
+        y2={ay2}
+        stroke="#888"
+        strokeWidth={1}
+        strokeDasharray="3 3"
+      />
+      <line
+        x1={ax1 - tnx}
+        y1={ay1 - tny}
+        x2={ax1 + tnx}
+        y2={ay1 + tny}
+        stroke="#222"
+        strokeWidth={1.2}
+      />
+      <line
+        x1={ax2 - tnx}
+        y1={ay2 - tny}
+        x2={ax2 + tnx}
+        y2={ay2 + tny}
+        stroke="#222"
+        strokeWidth={1.2}
+      />
+      <line x1={ax1} y1={ay1} x2={ax2} y2={ay2} stroke="#222" strokeWidth={1.2} />
+      <text
+        x={tcx}
+        y={tcy}
+        fill="#111"
+        fontSize={12}
+        fontWeight={600}
+        textAnchor="middle"
+        dominantBaseline="middle"
+        paintOrder="stroke"
+        stroke="rgba(255,255,255,0.92)"
+        strokeWidth={4}
+        transform={`rotate(${angleDeg} ${tcx} ${tcy})`}
+      >
+        {label}
+      </text>
+    </g>
+  )
+}
+
 /** Assen-label in hoek (zelfde layout als origineel) */
 function Axes({ view }) {
   const ap = 20
   const al = 50
   const arr = 5
+  const ax = '#4a4a4a'
+  const tx = '#222'
   if (view === 'XY') {
     return (
       <g aria-hidden>
-        <line x1={ap} y1={ap} x2={ap + al} y2={ap} stroke="red" strokeWidth={2} />
-        <polygon points={arrowPoints(ap + al, ap, arr, 0)} fill="red" />
-        <text x={ap + al + 10} y={ap + 4} fill="red" fontSize={16}>
+        <line x1={ap} y1={ap} x2={ap + al} y2={ap} stroke={ax} strokeWidth={2} />
+        <polygon points={arrowPoints(ap + al, ap, arr, 0)} fill={ax} />
+        <text x={ap + al + 10} y={ap + 4} fill={tx} fontSize={16}>
           X
         </text>
-        <line x1={ap} y1={ap} x2={ap} y2={ap + al} stroke="green" strokeWidth={2} />
-        <polygon points={arrowPoints(ap, ap + al, arr, -90)} fill="green" />
-        <text x={ap} y={ap + al + 15} fill="green" fontSize={16}>
+        <line x1={ap} y1={ap} x2={ap} y2={ap + al} stroke={ax} strokeWidth={2} strokeDasharray="6 4" />
+        <polygon points={arrowPoints(ap, ap + al, arr, -90)} fill={ax} />
+        <text x={ap} y={ap + al + 15} fill={tx} fontSize={16}>
           Y
         </text>
       </g>
@@ -100,14 +324,14 @@ function Axes({ view }) {
   if (view === 'XZ') {
     return (
       <g aria-hidden>
-        <line x1={ap} y1={ap} x2={ap + al} y2={ap} stroke="red" strokeWidth={2} />
-        <polygon points={arrowPoints(ap + al, ap, arr, 0)} fill="red" />
-        <text x={ap + al + 10} y={ap + 4} fill="red" fontSize={16}>
+        <line x1={ap} y1={ap} x2={ap + al} y2={ap} stroke={ax} strokeWidth={2} />
+        <polygon points={arrowPoints(ap + al, ap, arr, 0)} fill={ax} />
+        <text x={ap + al + 10} y={ap + 4} fill={tx} fontSize={16}>
           X
         </text>
-        <line x1={ap} y1={ap} x2={ap} y2={ap + al} stroke="blue" strokeWidth={2} />
-        <polygon points={arrowPoints(ap, ap + al, arr, -90)} fill="blue" />
-        <text x={ap} y={ap + al + 15} fill="blue" fontSize={16}>
+        <line x1={ap} y1={ap} x2={ap} y2={ap + al} stroke={ax} strokeWidth={2} strokeDasharray="6 4" />
+        <polygon points={arrowPoints(ap, ap + al, arr, -90)} fill={ax} />
+        <text x={ap} y={ap + al + 15} fill={tx} fontSize={16}>
           Z
         </text>
       </g>
@@ -115,21 +339,21 @@ function Axes({ view }) {
   }
   return (
     <g aria-hidden>
-      <line x1={ap} y1={ap} x2={ap + al} y2={ap} stroke="blue" strokeWidth={2} />
-      <polygon points={arrowPoints(ap + al, ap, arr, 0)} fill="blue" />
-      <text x={ap + al + 10} y={ap + 4} fill="blue" fontSize={16}>
+      <line x1={ap} y1={ap} x2={ap + al} y2={ap} stroke={ax} strokeWidth={2} />
+      <polygon points={arrowPoints(ap + al, ap, arr, 0)} fill={ax} />
+      <text x={ap + al + 10} y={ap + 4} fill={tx} fontSize={16}>
         Z
       </text>
-      <line x1={ap} y1={ap} x2={ap} y2={ap + al} stroke="green" strokeWidth={2} />
-      <polygon points={arrowPoints(ap, ap + al, arr, -90)} fill="green" />
-      <text x={ap} y={ap + al + 15} fill="green" fontSize={16}>
+      <line x1={ap} y1={ap} x2={ap} y2={ap + al} stroke={ax} strokeWidth={2} strokeDasharray="6 4" />
+      <polygon points={arrowPoints(ap, ap + al, arr, -90)} fill={ax} />
+      <text x={ap} y={ap + al + 15} fill={tx} fontSize={16}>
         Y
       </text>
     </g>
   )
 }
 
-export default function PipeCanvas({ lines, view, radiusMm = 0 }) {
+export default function PipeCanvas({ lines, view, radiusMm = 0, diameterMm = 0 }) {
   const W = 800
   const H = 600
   const padding = 30
@@ -150,13 +374,29 @@ export default function PipeCanvas({ lines, view, radiusMm = 0 }) {
       maxY = Math.max(maxY, p.y)
       maxZ = Math.max(maxZ, p.z)
     }
-    const scaleX = (W - 2 * padding) / (maxX - minX || 1)
-    const scaleY = (H - 2 * padding) / (maxY - minY || 1)
-    const scaleZ = (H - 2 * padding) / (maxZ - minZ || 1)
-    const scale = Math.min(scaleX, scaleY, scaleZ)
-    const offsetX = -minX * scale + padding
-    const offsetY = -minY * scale + padding
-    const offsetZ = -minZ * scale + padding
+    const spanX = maxX - minX || 1
+    const spanY = maxY - minY || 1
+    const spanZ = maxZ - minZ || 1
+    let scale = Math.min(
+      (W - 2 * padding) / spanX,
+      (H - 2 * padding) / spanY,
+      (H - 2 * padding) / spanZ,
+    )
+    /** Extra marge zodat dikke buis (stroke) niet afsnijdt; kort schaal licht in */
+    for (let iter = 0; iter < 3; iter++) {
+      const sw = diameterMm > 0 ? Math.max(1, diameterMm * scale) : 4
+      const padExtra = sw / 2 + 8
+      scale = Math.min(
+        (W - 2 * padding - 2 * padExtra) / spanX,
+        (H - 2 * padding - 2 * padExtra) / spanY,
+        (H - 2 * padding - 2 * padExtra) / spanZ,
+      )
+    }
+    const strokeW = diameterMm > 0 ? Math.max(1, diameterMm * scale) : 4
+    const padExtra = strokeW / 2 + 8
+    const offsetX = -minX * scale + padding + padExtra
+    const offsetY = -minY * scale + padding + padExtra
+    const offsetZ = -minZ * scale + padding + padExtra
 
     const project = (p) => {
       if (view === 'XY') return { sx: p.x * scale + offsetX, sy: p.y * scale + offsetY }
@@ -176,7 +416,17 @@ export default function PipeCanvas({ lines, view, radiusMm = 0 }) {
       corners[vi] = cornerFillet2D(A, P, B, radiusPx)
     }
 
-    const linesOut = []
+    let pathCx = 0
+    let pathCy = 0
+    for (const p of projected) {
+      pathCx += p.sx
+      pathCy += p.sy
+    }
+    pathCx /= n
+    pathCy /= n
+
+    let pathD = `M ${projected[0].sx} ${projected[0].sy}`
+    const dims = []
     let current = { x: projected[0].sx, y: projected[0].sy }
 
     for (let seg = 0; seg < n - 1; seg++) {
@@ -186,77 +436,98 @@ export default function PipeCanvas({ lines, view, radiusMm = 0 }) {
       const endPt = c
         ? { x: c.Q1.x, y: c.Q1.y }
         : { x: projected[endVertex].sx, y: projected[endVertex].sy }
-      const color = COLORS[seg % COLORS.length]
+      const row = lines[seg]
+      const lengthMm = segmentLength(row.x, row.y, row.z)
+      dims.push({
+        x1: current.x,
+        y1: current.y,
+        x2: endPt.x,
+        y2: endPt.y,
+        lengthMm,
+        seg,
+      })
 
-      linesOut.push(
-        <line
-          key={`l-${seg}`}
-          x1={current.x}
-          y1={current.y}
-          x2={endPt.x}
-          y2={endPt.y}
-          stroke={color}
-          strokeWidth={4}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />,
-      )
-
+      pathD += ` L ${endPt.x} ${endPt.y}`
       if (c) {
-        const d = `M ${c.Q1.x} ${c.Q1.y} ${arcA(c.O, c.r, c.Q1, c.Q2, c.P)}`
-        linesOut.push(
-          <path
-            key={`arc-${endVertex}`}
-            d={d}
-            fill="none"
-            stroke={color}
-            strokeWidth={4}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />,
-        )
+        pathD += ` ${arcA(c.O, c.r, c.Q1, c.Q2, c.P)}`
         current = { x: c.Q2.x, y: c.Q2.y }
       } else {
         current = { x: projected[endVertex].sx, y: projected[endVertex].sy }
       }
     }
 
-    const anglesOut = []
-    let prevDir = null
-    for (let i = 1; i < projected.length; i++) {
-      const a = projected[i - 1]
-      const b = projected[i]
-      let dir
-      if (view === 'XY') dir = { dx: b.sx - a.sx, dy: b.sy - a.sy }
-      else if (view === 'XZ') dir = { dx: b.sx - a.sx, dz: b.sy - a.sy }
-      else dir = { dz: b.sx - a.sx, dy: b.sy - a.sy }
+    const hartLijnStroke = Math.min(2, Math.max(1, 1.25))
+    const pipeGraphics = (
+      <g>
+        <path
+          d={pathD}
+          fill="none"
+          stroke="#c5cad1"
+          strokeWidth={strokeW}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d={pathD}
+          fill="none"
+          stroke="#6f7378"
+          strokeWidth={hartLijnStroke}
+          strokeDasharray="6 5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </g>
+    )
 
-      if (i > 1 && prevDir) {
-        const ang = angleBetween2D(prevDir, dir)
-        if (ang != null) {
-          anglesOut.push(
-            <text
-              key={`a-${i}`}
-              x={(a.sx + b.sx) / 2}
-              y={(a.sy + b.sy) / 2 - 10}
-              fill="black"
-              fontSize={16}
-            >
-              {ang.toFixed(1)}°
-            </text>,
-          )
-        }
-      }
-      prevDir = dir
+    let bbMinSx = Infinity
+    let bbMaxSx = -Infinity
+    let bbMinSy = Infinity
+    let bbMaxSy = -Infinity
+    const expandBbox = (x, y) => {
+      bbMinSx = Math.min(bbMinSx, x)
+      bbMaxSx = Math.max(bbMaxSx, x)
+      bbMinSy = Math.min(bbMinSy, y)
+      bbMaxSy = Math.max(bbMaxSy, y)
     }
+    for (const p of projected) expandBbox(p.sx, p.sy)
+    for (let vi = 1; vi <= n - 2; vi++) {
+      const cor = corners[vi]
+      if (!cor) continue
+      expandBbox(cor.Q1.x, cor.Q1.y)
+      expandBbox(cor.Q2.x, cor.Q2.y)
+      expandBbox(cor.P.x, cor.P.y)
+      for (const q of arcSamplePoints(cor.O, cor.r, cor.Q1, cor.Q2, cor.P)) expandBbox(q.x, q.y)
+    }
+    const halfStroke = strokeW / 2
+    const bbox = {
+      minSx: bbMinSx - halfStroke,
+      maxSx: bbMaxSx + halfStroke,
+      minSy: bbMinSy - halfStroke,
+      maxSy: bbMaxSy + halfStroke,
+    }
+
+    const dimensionsOut = dims.map((d) => (
+      <SnijlijnDimension
+        key={`dim-${d.seg}`}
+        x1={d.x1}
+        y1={d.y1}
+        x2={d.x2}
+        y2={d.y2}
+        lengthMm={d.lengthMm}
+        pathCx={pathCx}
+        pathCy={pathCy}
+        seg={d.seg}
+      />
+    ))
 
     return (
       <g>
-        {linesOut}
-        {anglesOut}
+        {pipeGraphics}
+        {dimensionsOut}
+        <OverallViewDimensions bbox={bbox} scale={scale} view={view} H={H} />
       </g>
     )
-  }, [lines, view, W, H, padding, radiusMm])
+  }, [lines, view, W, H, padding, radiusMm, diameterMm])
 
   return (
     <svg
@@ -269,9 +540,15 @@ export default function PipeCanvas({ lines, view, radiusMm = 0 }) {
     >
       <Axes view={view} />
       {pipeLayer}
-      {radiusMm > 0 ? (
+      {radiusMm > 0 || diameterMm > 0 ? (
         <text x={W - 12} y={H - 16} textAnchor="end" fill="#333" fontSize={15}>
-          {`Buigradius: ${radiusMm} mm (2D-weergave)`}
+          {[
+            diameterMm > 0 ? `Ø ${diameterMm} mm` : null,
+            radiusMm > 0 ? `R ${radiusMm} mm` : null,
+          ]
+            .filter(Boolean)
+            .join(' · ')}
+          {' (2D-weergave)'}
         </text>
       ) : null}
     </svg>

@@ -133,7 +133,6 @@ export default function App() {
                 <th>X (mm)</th>
                 <th>Y (mm)</th>
                 <th>Z (mm)</th>
-                <th>Radius (mm)</th>
                 <th>Lengte (mm)</th>
               </tr>
             </thead>
@@ -150,11 +149,6 @@ export default function App() {
                       />
                     </td>
                   ))}
-                  {i === 0 ? (
-                    <td rowSpan={rows.length} className="coord-table-radius">
-                      {material?.radius ?? '—'}
-                    </td>
-                  ) : null}
                   <td>{segmentLens[i].toFixed(2)}</td>
                 </tr>
               ))}
@@ -250,7 +244,12 @@ export default function App() {
               </button>
             ))}
           </div>
-          <PipeCanvas lines={lines} view={view} radiusMm={material?.radius ?? 0} />
+          <PipeCanvas
+            lines={lines}
+            view={view}
+            radiusMm={material?.radius ?? 0}
+            diameterMm={material?.diameterMm ?? 0}
+          />
         </div>
       </div>
       </div>
