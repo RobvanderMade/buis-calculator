@@ -1,0 +1,20 @@
+/** Materiaal-database (prijs per meter, klem, buigradius) */
+export const MATERIALS = [
+  { materiaal: 'Ø13x1.5mm R=41', prijsPerMTR: 1.84, klemLengte: 40, radius: 41 },
+  { materiaal: 'Ø16x2mm R=32', prijsPerMTR: 2.3, klemLengte: 65, radius: 32 },
+  { materiaal: 'Ø19x1.5mm R=45', prijsPerMTR: 2.26, klemLengte: 50, radius: 45 },
+  { materiaal: 'Ø22x2mm R=60', prijsPerMTR: 5.2, klemLengte: 55, radius: 60 },
+  { materiaal: 'Ø22x2mm R=70', prijsPerMTR: 5.2, klemLengte: 65, radius: 60 },
+  { materiaal: 'Ø25,4x2mm R=50.8', prijsPerMTR: 3.96, klemLengte: 55, radius: 50.8 },
+  { materiaal: 'Ø25,4x2mm R=100 (alleen 2-D)', prijsPerMTR: 3.96, klemLengte: 100, radius: 100 },
+  { materiaal: 'Ø30x1.5mm R=60', prijsPerMTR: 4.24, klemLengte: 70, radius: 60 },
+  { materiaal: 'Ø30x1.5mm R=85', prijsPerMTR: 4.24, klemLengte: 75, radius: 85 },
+  { materiaal: 'Ø30x2.5mm R=60', prijsPerMTR: 6.01, klemLengte: 70, radius: 60 },
+  { materiaal: 'Ø30x2.5mm R=85', prijsPerMTR: 6.01, klemLengte: 75, radius: 85 },
+  { materiaal: 'Ø32x2mm R=74', prijsPerMTR: 7.5, klemLengte: 80, radius: 74 },
+  { materiaal: 'Ø32x2mm R=142', prijsPerMTR: 7.5, klemLengte: 80, radius: 142 },
+  { materiaal: 'Ø32x3mm R=74', prijsPerMTR: 7.5, klemLengte: 80, radius: 74 },
+  { materiaal: 'Ø32x3mm R=142', prijsPerMTR: 7.5, klemLengte: 80, radius: 142 },
+  { materiaal: 'Ø38x2mm R=76', prijsPerMTR: 7.5, klemLengte: 110, radius: 76 },
+  { materiaal: 'Ø38x3mm R=76', prijsPerMTR: 19.16, klemLengte: 110, radius: 76 },
+]
