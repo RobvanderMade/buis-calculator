@@ -16,6 +16,66 @@ function arrowPoints(x, y, size, angleDeg) {
     .join(' ')
 }
 
+/** Buigboog in 2D (geschaald); null bij rechte lijn of te korte segmenten */
+function cornerFillet2D(A, P, B, radiusPx) {
+  if (radiusPx <= 0) return null
+  const dx1 = P.x - A.x
+  const dy1 = P.y - A.y
+  const dx2 = B.x - P.x
+  const dy2 = B.y - P.y
+  const len1 = Math.hypot(dx1, dy1)
+  const len2 = Math.hypot(dx2, dy2)
+  if (len1 < 1e-9 || len2 < 1e-9) return null
+  const e1 = { x: dx1 / len1, y: dy1 / len1 }
+  const e2 = { x: dx2 / len2, y: dy2 / len2 }
+  const dot = Math.min(1, Math.max(-1, -e1.x * e2.x - e1.y * e2.y))
+  const phi = Math.acos(dot)
+  if (phi < 1e-3 || Math.abs(phi - Math.PI) < 1e-3) return null
+  let t = radiusPx / Math.tan(phi / 2)
+  const tMax = Math.min(len1, len2) * 0.499
+  let rEff = radiusPx
+  if (t > tMax) {
+    t = tMax
+    rEff = t * Math.tan(phi / 2)
+  }
+  if (rEff < 0.5) return null
+  const Q1 = { x: P.x - t * e1.x, y: P.y - t * e1.y }
+  const Q2 = { x: P.x + t * e2.x, y: P.y + t * e2.y }
+  const sx = -e1.x + e2.x
+  const sy = -e1.y + e2.y
+  const slen = Math.hypot(sx, sy)
+  if (slen < 1e-9) return null
+  const bis = { x: sx / slen, y: sy / slen }
+  const dist = rEff / Math.sin(phi / 2)
+  const O = { x: P.x + dist * bis.x, y: P.y + dist * bis.y }
+  return { Q1, Q2, O, r: rEff, P }
+}
+
+/** SVG elliptische boog Q1→Q2 (straal r); kiest korte boog die het dichtst bij hoekpunt P ligt */
+function arcA(O, r, Q1, Q2, cornerP) {
+  const ang1 = Math.atan2(Q1.y - O.y, Q1.x - O.x)
+  const ang2 = Math.atan2(Q2.y - O.y, Q2.x - O.x)
+  let d = ang2 - ang1
+  while (d > Math.PI) d -= 2 * Math.PI
+  while (d < -Math.PI) d += 2 * Math.PI
+  const midShort = {
+    x: O.x + r * Math.cos(ang1 + d / 2),
+    y: O.y + r * Math.sin(ang1 + d / 2),
+  }
+  const dLong = d > 0 ? d - 2 * Math.PI : d + 2 * Math.PI
+  const midLong = {
+    x: O.x + r * Math.cos(ang1 + dLong / 2),
+    y: O.y + r * Math.sin(ang1 + dLong / 2),
+  }
+  const useShort =
+    Math.hypot(midShort.x - cornerP.x, midShort.y - cornerP.y) <=
+    Math.hypot(midLong.x - cornerP.x, midLong.y - cornerP.y)
+  const eff = useShort ? d : dLong
+  const largeArc = Math.abs(eff) > Math.PI ? 1 : 0
+  const sweep = eff > 0 ? 1 : 0
+  return `A ${r} ${r} 0 ${largeArc} ${sweep} ${Q2.x} ${Q2.y}`
+}
+
 /** Assen-label in hoek (zelfde layout als origineel) */
 function Axes({ view }) {
   const ap = 20
@@ -69,7 +129,7 @@ function Axes({ view }) {
   )
 }
 
-export default function PipeCanvas({ lines, view }) {
+export default function PipeCanvas({ lines, view, radiusMm = 0 }) {
   const W = 800
   const H = 600
   const padding = 30
@@ -105,25 +165,67 @@ export default function PipeCanvas({ lines, view }) {
     }
 
     const projected = pts3.map(project)
+    const n = projected.length
+    const radiusPx = radiusMm * scale
+
+    const corners = new Array(n).fill(null)
+    for (let vi = 1; vi <= n - 2; vi++) {
+      const A = { x: projected[vi - 1].sx, y: projected[vi - 1].sy }
+      const P = { x: projected[vi].sx, y: projected[vi].sy }
+      const B = { x: projected[vi + 1].sx, y: projected[vi + 1].sy }
+      corners[vi] = cornerFillet2D(A, P, B, radiusPx)
+    }
+
     const linesOut = []
+    let current = { x: projected[0].sx, y: projected[0].sy }
+
+    for (let seg = 0; seg < n - 1; seg++) {
+      const endVertex = seg + 1
+      const isInterior = endVertex >= 1 && endVertex <= n - 2
+      const c = isInterior ? corners[endVertex] : null
+      const endPt = c
+        ? { x: c.Q1.x, y: c.Q1.y }
+        : { x: projected[endVertex].sx, y: projected[endVertex].sy }
+      const color = COLORS[seg % COLORS.length]
+
+      linesOut.push(
+        <line
+          key={`l-${seg}`}
+          x1={current.x}
+          y1={current.y}
+          x2={endPt.x}
+          y2={endPt.y}
+          stroke={color}
+          strokeWidth={4}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />,
+      )
+
+      if (c) {
+        const d = `M ${c.Q1.x} ${c.Q1.y} ${arcA(c.O, c.r, c.Q1, c.Q2, c.P)}`
+        linesOut.push(
+          <path
+            key={`arc-${endVertex}`}
+            d={d}
+            fill="none"
+            stroke={color}
+            strokeWidth={4}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />,
+        )
+        current = { x: c.Q2.x, y: c.Q2.y }
+      } else {
+        current = { x: projected[endVertex].sx, y: projected[endVertex].sy }
+      }
+    }
+
     const anglesOut = []
     let prevDir = null
-
     for (let i = 1; i < projected.length; i++) {
       const a = projected[i - 1]
       const b = projected[i]
-      const color = COLORS[(i - 1) % COLORS.length]
-      linesOut.push(
-        <line
-          key={`l-${i}`}
-          x1={a.sx}
-          y1={a.sy}
-          x2={b.sx}
-          y2={b.sy}
-          stroke={color}
-          strokeWidth={4}
-        />,
-      )
       let dir
       if (view === 'XY') dir = { dx: b.sx - a.sx, dy: b.sy - a.sy }
       else if (view === 'XZ') dir = { dx: b.sx - a.sx, dz: b.sy - a.sy }
@@ -154,7 +256,7 @@ export default function PipeCanvas({ lines, view }) {
         {anglesOut}
       </g>
     )
-  }, [lines, view, W, H, padding])
+  }, [lines, view, W, H, padding, radiusMm])
 
   return (
     <svg
@@ -167,6 +269,11 @@ export default function PipeCanvas({ lines, view }) {
     >
       <Axes view={view} />
       {pipeLayer}
+      {radiusMm > 0 ? (
+        <text x={W - 12} y={H - 16} textAnchor="end" fill="#333" fontSize={15}>
+          {`Buigradius: ${radiusMm} mm (2D-weergave)`}
+        </text>
+      ) : null}
     </svg>
   )
 }

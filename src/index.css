@@ -108,7 +108,7 @@ svg.pipe-canvas {
 table.coord-table {
   border-collapse: collapse;
   width: 100%;
-  max-width: 480px;
+  max-width: 560px;
   table-layout: fixed;
 }
 
@@ -133,6 +133,12 @@ table.coord-table input[type='number'] {
   width: 100%;
   min-width: 0;
   padding: 4px 6px;
+}
+
+table.coord-table td.coord-table-radius {
+  vertical-align: middle;
+  background: #f8f9fa;
+  font-variant-numeric: tabular-nums;
 }
 
 .stack {
