@@ -35,6 +35,10 @@ body.modal-open {
   max-width: 1280px;
   margin: 0 auto;
   padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
 }
 
 .site-header__brand {
@@ -67,6 +71,20 @@ body.modal-open {
   font-size: 0.9rem;
   font-weight: 400;
   opacity: 0.92;
+}
+
+.site-header__login {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.12);
+  white-space: nowrap;
+}
+
+.site-header__login:hover {
+  background: rgba(255, 255, 255, 0.22);
 }
 
 .site-main {
@@ -285,10 +303,6 @@ input[readonly] {
   margin-bottom: 12px;
 }
 
-.page-nav {
-  margin-bottom: 16px;
-}
-
 .backoffice {
   width: 100%;
 }
@@ -354,6 +368,58 @@ table.admin-table td:first-child {
   width: auto;
 }
 
+.login-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(16, 20, 24, 0.55);
+}
+
+.login-card {
+  width: min(440px, 100%);
+  padding: 18px;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+}
+
+.admin-login-page {
+  display: flex;
+  justify-content: center;
+  padding: 40px 0;
+}
+
+.login-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-weight: 600;
+}
+
+.login-role-switch,
+.login-mode-switch {
+  margin: 12px 0;
+}
+
+.login-mode-switch button {
+  font-size: 0.9rem;
+}
+
+.customer-profile-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.customer-profile-fields label:nth-child(1),
+.customer-profile-fields label:nth-child(3) {
+  grid-column: 1 / -1;
+}
+
 @media (max-width: 720px) {
   .site-main {
     padding: 12px;
@@ -365,5 +431,18 @@ table.admin-table td:first-child {
 
   .site-header__name {
     font-size: 1.05rem;
+  }
+
+  .site-header__login span {
+    display: none;
+  }
+
+  .customer-profile-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .customer-profile-fields label:nth-child(1),
+  .customer-profile-fields label:nth-child(3) {
+    grid-column: auto;
   }
 }

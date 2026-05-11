@@ -29,7 +29,21 @@ function LogoMark() {
   )
 }
 
-export default function SiteHeader() {
+function LoginIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+      <path
+        d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7 8a7 7 0 0 0-14 0"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+export default function SiteHeader({ accountLabel = 'Inloggen', onAccountClick }) {
   return (
     <header className="site-header">
       <div className="site-header__inner">
@@ -40,6 +54,10 @@ export default function SiteHeader() {
             <span className="site-header__tagline">Buis visualisatie · calculator</span>
           </div>
         </div>
+        <button type="button" className="site-header__login" onClick={onAccountClick}>
+          <LoginIcon />
+          <span>{accountLabel}</span>
+        </button>
       </div>
     </header>
   )

@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
+import { signOut } from 'firebase/auth'
 import Backoffice from './Backoffice.jsx'
+import { auth } from './firebase.js'
+import { loadCustomerProfile } from './customerRepository.js'
+import LoginPanel from './LoginPanel.jsx'
 import SiteHeader from './SiteHeader.jsx'
 import PipeCanvas from './PipeCanvas.jsx'
 import { DEFAULT_MATERIALS } from './materials.js'
@@ -36,7 +40,11 @@ export default function App() {
   const [view, setView] = useState('XY')
   const [isGridFullscreen, setIsGridFullscreen] = useState(false)
   const [activePage, setActivePage] = useState('calculator')
+  const [path, setPath] = useState(window.location.pathname)
+  const [loginPanelOpen, setLoginPanelOpen] = useState(false)
+  const [session, setSession] = useState(null)
   const [requestStatus, setRequestStatus] = useState('')
+  const isAdminPage = path === '/admin'
 
   const lines = useMemo(
     () => rows.map((r) => ({ x: parseCoord(r.x), y: parseCoord(r.y), z: parseCoord(r.z) })),
@@ -99,6 +107,12 @@ export default function App() {
     }
   }, [isGridFullscreen])
 
+  useEffect(() => {
+    const onPopState = () => setPath(window.location.pathname)
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [])
+
   function updateCell(rowIndex, key, raw) {
     setRows((prev) =>
       prev.map((row, i) => (i === rowIndex ? { ...row, [key]: raw } : row)),
@@ -119,8 +133,45 @@ export default function App() {
     alert(res.message)
   }
 
+  async function handleLogin(nextSession) {
+    let customerProfile = nextSession.customerProfile ?? null
+    if (nextSession.role === 'customer' && !customerProfile) {
+      customerProfile = await loadCustomerProfile(nextSession.user.uid)
+    }
+    setSession({ ...nextSession, customerProfile })
+    setLoginPanelOpen(false)
+    if (nextSession.role === 'admin') {
+      navigate('/admin')
+    } else {
+      setActivePage('customer')
+    }
+  }
+
+  async function handleLogout() {
+    if (auth) await signOut(auth)
+    setSession(null)
+    setActivePage('calculator')
+  }
+
+  function navigate(nextPath) {
+    window.history.pushState({}, '', nextPath)
+    setPath(nextPath)
+  }
+
   async function submitRequest() {
     setRequestStatus('')
+
+    if (session?.role !== 'customer') {
+      setRequestStatus('Maak eerst een My BendR klantaccount aan of log in om een aanvraag te versturen.')
+      setLoginPanelOpen(true)
+      return
+    }
+
+    if (!session.customerProfile) {
+      setRequestStatus('Vul eerst je klantprofiel aan voordat je een aanvraag verstuurt.')
+      setLoginPanelOpen(true)
+      return
+    }
 
     const validation = validateLines(lines, material)
     if (!validation.ok) {
@@ -131,6 +182,9 @@ export default function App() {
     try {
       const stuks = Math.max(1, parseInt(String(aantalStuks), 10) || 1)
       await createRequest({
+        customerUid: session?.role === 'customer' ? session.user.uid : '',
+        customerEmail: session?.role === 'customer' ? session.user.email : '',
+        customerProfile: session.customerProfile,
         material,
         lines,
         totalLength,
@@ -146,28 +200,36 @@ export default function App() {
 
   return (
     <div className="app">
-      <SiteHeader />
+      <SiteHeader
+        accountLabel="My BendR"
+        onAccountClick={() => {
+          if (session?.role === 'customer') {
+            navigate('/')
+            setActivePage('customer')
+          } else if (session?.role === 'admin') {
+            navigate('/')
+            setActivePage('calculator')
+          } else {
+            setLoginPanelOpen(true)
+          }
+        }}
+      />
       <div className="site-main">
         {computed.error ? <div className="error-banner">{computed.error}</div> : null}
-        <div className="page-nav row-btns">
-          <button
-            type="button"
-            className={activePage === 'calculator' ? 'view-active' : ''}
-            onClick={() => setActivePage('calculator')}
-          >
-            Calculator
-          </button>
-          <button
-            type="button"
-            className={activePage === 'backoffice' ? 'view-active' : ''}
-            onClick={() => setActivePage('backoffice')}
-          >
-            Backoffice
-          </button>
-        </div>
 
-        {activePage === 'backoffice' ? (
-          <Backoffice />
+        {isAdminPage && session?.role === 'admin' ? (
+          <Backoffice user={session.user} role={session.role} onLogout={handleLogout} />
+        ) : isAdminPage ? (
+          <div className="admin-login-page">
+            <LoginPanel
+              fixedRole="admin"
+              embedded
+              title="Admin login"
+              onLogin={handleLogin}
+            />
+          </div>
+        ) : activePage === 'customer' && session ? (
+          <Backoffice user={session.user} role={session.role} onLogout={handleLogout} />
         ) : (
         <div className="container">
         <div className="panel stack">
@@ -257,8 +319,8 @@ export default function App() {
           </div>
 
           <p className="hint">
-            Is de invoer gecontroleerd? Maak dan de aanvraag aan. Deze verschijnt automatisch in de
-            backoffice.
+            Is de invoer gecontroleerd? Log in met My BendR of maak een klantaccount aan om de aanvraag te
+            versturen.
           </p>
 
           <div className="row-btns">
@@ -351,6 +413,14 @@ export default function App() {
         </div>
         )}
       </div>
+      {loginPanelOpen ? (
+        <LoginPanel
+          fixedRole="customer"
+          title="My BendR"
+          onLogin={handleLogin}
+          onClose={() => setLoginPanelOpen(false)}
+        />
+      ) : null}
     </div>
   )
 }

@@ -1,6 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth'
-import { auth } from './firebase'
 import { createMaterialId, deleteMaterial, loadMaterials, saveMaterial } from './materialRepository'
 import { loadRequests, updateRequestStatus } from './requestRepository'
 
@@ -27,30 +25,14 @@ function parseNumber(value) {
   return Number.isFinite(number) ? number : 0
 }
 
-export default function Backoffice() {
-  const [user, setUser] = useState(null)
-  const [authReady, setAuthReady] = useState(false)
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+export default function Backoffice({ user, role, onLogout }) {
   const [message, setMessage] = useState('')
   const [materials, setMaterials] = useState([])
   const [requests, setRequests] = useState([])
   const [editing, setEditing] = useState(emptyMaterial)
   const [activeTab, setActiveTab] = useState('requests')
 
-  const canUseAuth = Boolean(auth)
-
-  useEffect(() => {
-    if (!auth) {
-      setAuthReady(true)
-      return undefined
-    }
-
-    return onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser)
-      setAuthReady(true)
-    })
-  }, [])
+  const isAdmin = role === 'admin'
 
   async function refreshBackofficeData() {
     try {
@@ -63,28 +45,11 @@ export default function Backoffice() {
   }
 
   useEffect(() => {
-    if (user) refreshBackofficeData()
-  }, [user])
-
-  async function handleLogin(event) {
-    event.preventDefault()
-    setMessage('')
-    try {
-      await signInWithEmailAndPassword(auth, email, password)
-      setPassword('')
-    } catch (error) {
-      setMessage(`Inloggen mislukt: ${error.message}`)
-    }
-  }
-
-  async function handleLogout() {
-    await signOut(auth)
-    setUser(null)
-    setMaterials([])
-    setRequests([])
-  }
+    refreshBackofficeData()
+  }, [])
 
   function editMaterial(material) {
+    if (!isAdmin) return
     setEditing(material)
     setActiveTab('materials')
   }
@@ -95,6 +60,7 @@ export default function Backoffice() {
 
   async function handleSaveMaterial(event) {
     event.preventDefault()
+    if (!isAdmin) return
     setMessage('')
     try {
       const id = editing.id || createMaterialId(editing.materiaal)
@@ -116,6 +82,7 @@ export default function Backoffice() {
   }
 
   async function handleDeleteMaterial(materialId) {
+    if (!isAdmin) return
     if (!window.confirm('Materiaal verwijderen?')) return
     setMessage('')
     try {
@@ -128,6 +95,7 @@ export default function Backoffice() {
   }
 
   async function handleStatusChange(requestId, status) {
+    if (!isAdmin) return
     setMessage('')
     try {
       await updateRequestStatus(requestId, status)
@@ -141,48 +109,24 @@ export default function Backoffice() {
     () => `${requests.length} ${requests.length === 1 ? 'aanvraag' : 'aanvragen'}`,
     [requests.length],
   )
-
-  if (!authReady) return <p className="status-text">Backoffice laden...</p>
-
-  if (!canUseAuth) {
-    return <div className="error-banner">Firebase is nog niet geconfigureerd.</div>
-  }
-
-  if (!user) {
-    return (
-      <div className="panel stack backoffice-login">
-        <h2>Backoffice login</h2>
-        <form className="stack" onSubmit={handleLogin}>
-          <label>
-            E-mail
-            <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
-          </label>
-          <label>
-            Wachtwoord
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-            />
-          </label>
-          <button type="submit" className="primary">
-            Inloggen
-          </button>
-        </form>
-        {message ? <p className="status-text">{message}</p> : null}
-      </div>
-    )
-  }
+  const visibleRequests = useMemo(
+    () => (isAdmin ? requests : requests.filter((request) => request.customerUid === user.uid)),
+    [isAdmin, requests, user.uid],
+  )
+  const visibleRequestCountLabel = `${visibleRequests.length} ${
+    visibleRequests.length === 1 ? 'aanvraag' : 'aanvragen'
+  }`
 
   return (
     <div className="backoffice stack">
       <div className="backoffice-header">
         <div>
-          <h2>Backoffice</h2>
-          <p className="status-text">Ingelogd als {user.email}</p>
+          <h2>{isAdmin ? 'Backoffice' : 'Klantomgeving'}</h2>
+          <p className="status-text">
+            Ingelogd als {user.email} ({isAdmin ? 'admin' : 'klant'})
+          </p>
         </div>
-        <button type="button" onClick={handleLogout}>
+        <button type="button" onClick={onLogout}>
           Uitloggen
         </button>
       </div>
@@ -195,13 +139,15 @@ export default function Backoffice() {
         >
           Aanvragen ({requests.length})
         </button>
-        <button
-          type="button"
-          className={activeTab === 'materials' ? 'view-active' : ''}
-          onClick={() => setActiveTab('materials')}
-        >
-          Materialen ({materials.length})
-        </button>
+        {isAdmin ? (
+          <button
+            type="button"
+            className={activeTab === 'materials' ? 'view-active' : ''}
+            onClick={() => setActiveTab('materials')}
+          >
+            Materialen ({materials.length})
+          </button>
+        ) : null}
         <button type="button" onClick={refreshBackofficeData}>
           Verversen
         </button>
@@ -209,17 +155,26 @@ export default function Backoffice() {
 
       {message ? <p className="status-text">{message}</p> : null}
 
-      {activeTab === 'requests' ? (
+      {activeTab === 'requests' || !isAdmin ? (
         <section className="panel stack">
-          <h3>{requestCountLabel}</h3>
-          {requests.length === 0 ? <p className="hint">Nog geen aanvragen.</p> : null}
+          <h3>{isAdmin ? requestCountLabel : visibleRequestCountLabel}</h3>
+          {visibleRequests.length === 0 ? <p className="hint">Nog geen aanvragen.</p> : null}
           <div className="card-list">
-            {requests.map((request) => (
+            {visibleRequests.map((request) => (
               <article className="data-card" key={request.id}>
                 <div className="data-card__head">
                   <strong>{request.material?.materiaal || 'Onbekend materiaal'}</strong>
                   <span>{formatDate(request.createdAt)}</span>
                 </div>
+                {isAdmin && request.customerEmail ? <p>Klant: {request.customerEmail}</p> : null}
+                {isAdmin && request.customerProfile ? (
+                  <p className="hint">
+                    {request.customerProfile.company ? `${request.customerProfile.company} | ` : ''}
+                    {request.customerProfile.name} | {request.customerProfile.street},{' '}
+                    {request.customerProfile.postalCode} {request.customerProfile.city} |{' '}
+                    {request.customerProfile.phone}
+                  </p>
+                ) : null}
                 <p>
                   Lengte: {request.totalLength.toFixed(2)} mm | Aantal: {request.aantalStuks} | Totaal:{' '}
                   {request.totaalPrijs.toFixed(2)} EUR
@@ -227,17 +182,21 @@ export default function Backoffice() {
                 <p className="hint">
                   Regels: {request.lines.map((line) => `X${line.x} Y${line.y} Z${line.z}`).join(' | ')}
                 </p>
-                <label>
-                  Status
-                  <select
-                    value={request.status}
-                    onChange={(event) => handleStatusChange(request.id, event.target.value)}
-                  >
-                    <option value="nieuw">Nieuw</option>
-                    <option value="in_behandeling">In behandeling</option>
-                    <option value="afgerond">Afgerond</option>
-                  </select>
-                </label>
+                {isAdmin ? (
+                  <label>
+                    Status
+                    <select
+                      value={request.status}
+                      onChange={(event) => handleStatusChange(request.id, event.target.value)}
+                    >
+                      <option value="nieuw">Nieuw</option>
+                      <option value="in_behandeling">In behandeling</option>
+                      <option value="afgerond">Afgerond</option>
+                    </select>
+                  </label>
+                ) : (
+                  <p>Status: {request.status}</p>
+                )}
               </article>
             ))}
           </div>
