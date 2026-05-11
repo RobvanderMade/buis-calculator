@@ -446,11 +446,13 @@ export default function PipeCanvas({ lines, view, radiusMm = 0, diameterMm = 0 }
         : { x: projected[endVertex].sx, y: projected[endVertex].sy }
       const row = lines[seg]
       const lengthMm = segmentLength(row.x, row.y, row.z)
+      const dimStart = projected[seg]
+      const dimEnd = projected[endVertex]
       dims.push({
-        x1: current.x,
-        y1: current.y,
-        x2: endPt.x,
-        y2: endPt.y,
+        x1: dimStart.sx,
+        y1: dimStart.sy,
+        x2: dimEnd.sx,
+        y2: dimEnd.sy,
         lengthMm,
         seg,
       })
