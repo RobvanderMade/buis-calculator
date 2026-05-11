@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import SiteHeader from './SiteHeader.jsx'
 import PipeCanvas from './PipeCanvas.jsx'
 import { MATERIALS } from './materials.js'
@@ -26,6 +26,7 @@ export default function App() {
   const [materialIndex, setMaterialIndex] = useState(0)
   const [aantalStuks, setAantalStuks] = useState(1)
   const [view, setView] = useState('XY')
+  const [isGridFullscreen, setIsGridFullscreen] = useState(false)
 
   const lines = useMemo(
     () => rows.map((r) => ({ x: parseCoord(r.x), y: parseCoord(r.y), z: parseCoord(r.z) })),
@@ -44,6 +45,21 @@ export default function App() {
 
   const displayPrijsPerStuk = computed.error ? 0 : computed.value
   const displayTotaal = displayPrijsPerStuk * Math.max(1, parseInt(String(aantalStuks), 10) || 1)
+
+  useEffect(() => {
+    if (!isGridFullscreen) return undefined
+
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') setIsGridFullscreen(false)
+    }
+
+    document.body.classList.add('modal-open')
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.body.classList.remove('modal-open')
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [isGridFullscreen])
 
   function updateCell(rowIndex, key, raw) {
     setRows((prev) =>
@@ -244,12 +260,44 @@ export default function App() {
               </button>
             ))}
           </div>
-          <PipeCanvas
-            lines={lines}
-            view={view}
-            radiusMm={material?.radius ?? 0}
-            diameterMm={material?.diameterMm ?? 0}
-          />
+          <div className="canvas-shell">
+            <button
+              type="button"
+              className="canvas-expand-btn"
+              onClick={() => setIsGridFullscreen(true)}
+              aria-label="Grid schermvullend openen"
+              title="Vergroot grid"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M5 10V5h5M14 5h5v5M19 14v5h-5M10 19H5v-5" />
+              </svg>
+            </button>
+            <PipeCanvas
+              lines={lines}
+              view={view}
+              radiusMm={material?.radius ?? 0}
+              diameterMm={material?.diameterMm ?? 0}
+            />
+          </div>
+          {isGridFullscreen ? (
+            <div className="canvas-fullscreen" role="dialog" aria-modal="true" aria-label="Schermvullend grid">
+              <button
+                type="button"
+                className="canvas-close-btn"
+                onClick={() => setIsGridFullscreen(false)}
+                aria-label="Schermvullend grid sluiten"
+                title="Sluiten"
+              >
+                X
+              </button>
+              <PipeCanvas
+                lines={lines}
+                view={view}
+                radiusMm={material?.radius ?? 0}
+                diameterMm={material?.diameterMm ?? 0}
+              />
+            </div>
+          ) : null}
         </div>
       </div>
       </div>
