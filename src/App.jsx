@@ -42,6 +42,7 @@ export default function App() {
   const [activePage, setActivePage] = useState('calculator')
   const [path, setPath] = useState(window.location.pathname)
   const [loginPanelOpen, setLoginPanelOpen] = useState(false)
+  const [loginInitialMode, setLoginInitialMode] = useState('login')
   const [session, setSession] = useState(null)
   const [requestStatus, setRequestStatus] = useState('')
   const isAdminPage = path === '/admin'
@@ -143,7 +144,8 @@ export default function App() {
     if (nextSession.role === 'admin') {
       navigate('/admin')
     } else {
-      setActivePage('customer')
+      navigate('/')
+      setActivePage('calculator')
     }
   }
 
@@ -163,6 +165,7 @@ export default function App() {
 
     if (session?.role !== 'customer') {
       setRequestStatus('Maak eerst een My BendR klantaccount aan of log in om een aanvraag te versturen.')
+      setLoginInitialMode('register')
       setLoginPanelOpen(true)
       return
     }
@@ -202,16 +205,27 @@ export default function App() {
     <div className="app">
       <SiteHeader
         accountLabel="My BendR"
+        isLoggedIn={Boolean(session)}
         onAccountClick={() => {
           if (session?.role === 'customer') {
             navigate('/')
             setActivePage('customer')
           } else if (session?.role === 'admin') {
-            navigate('/')
-            setActivePage('calculator')
+            navigate('/admin')
           } else {
+            setLoginInitialMode('login')
             setLoginPanelOpen(true)
           }
+        }}
+        onHomeClick={() => {
+          navigate('/')
+          setActivePage('calculator')
+        }}
+        onLogoutClick={handleLogout}
+        showRegisterButton={!session}
+        onRegisterClick={() => {
+          setLoginInitialMode('register')
+          setLoginPanelOpen(true)
         }}
       />
       <div className="site-main">
@@ -229,7 +243,12 @@ export default function App() {
             />
           </div>
         ) : activePage === 'customer' && session ? (
-          <Backoffice user={session.user} role={session.role} onLogout={handleLogout} />
+          <Backoffice
+            user={session.user}
+            role={session.role}
+            customerProfile={session.customerProfile}
+            onLogout={handleLogout}
+          />
         ) : (
         <div className="container">
         <div className="panel stack">
@@ -416,6 +435,7 @@ export default function App() {
       {loginPanelOpen ? (
         <LoginPanel
           fixedRole="customer"
+          initialMode={loginInitialMode}
           title="My BendR"
           onLogin={handleLogin}
           onClose={() => setLoginPanelOpen(false)}

@@ -10,12 +10,13 @@ import { emptyCustomerProfile, saveCustomerProfile } from './customerRepository'
 export default function LoginPanel({
   fixedRole = 'customer',
   embedded = false,
+  initialMode = 'login',
   title = 'Inloggen',
   onLogin,
   onClose,
 }) {
   const [role, setRole] = useState(fixedRole)
-  const [mode, setMode] = useState('login')
+  const [mode, setMode] = useState(initialMode)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [profile, setProfile] = useState(emptyCustomerProfile)

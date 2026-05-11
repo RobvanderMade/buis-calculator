@@ -25,7 +25,7 @@ function parseNumber(value) {
   return Number.isFinite(number) ? number : 0
 }
 
-export default function Backoffice({ user, role, onLogout }) {
+export default function Backoffice({ user, role, customerProfile, onLogout }) {
   const [message, setMessage] = useState('')
   const [materials, setMaterials] = useState([])
   const [requests, setRequests] = useState([])
@@ -121,7 +121,7 @@ export default function Backoffice({ user, role, onLogout }) {
     <div className="backoffice stack">
       <div className="backoffice-header">
         <div>
-          <h2>{isAdmin ? 'Backoffice' : 'Klantomgeving'}</h2>
+          <h2>{isAdmin ? 'Backoffice' : 'My BendR account'}</h2>
           <p className="status-text">
             Ingelogd als {user.email} ({isAdmin ? 'admin' : 'klant'})
           </p>
@@ -154,6 +154,41 @@ export default function Backoffice({ user, role, onLogout }) {
       </div>
 
       {message ? <p className="status-text">{message}</p> : null}
+
+      {!isAdmin ? (
+        <section className="panel stack">
+          <h3>Accountgegevens</h3>
+          <div className="data-card account-details">
+            <p>
+              <strong>E-mail:</strong> {user.email}
+            </p>
+            {customerProfile ? (
+              <>
+                {customerProfile.company ? (
+                  <p>
+                    <strong>Bedrijf:</strong> {customerProfile.company}
+                  </p>
+                ) : null}
+                <p>
+                  <strong>Naam:</strong> {customerProfile.name}
+                </p>
+                <p>
+                  <strong>Adres:</strong> {customerProfile.street}, {customerProfile.postalCode}{' '}
+                  {customerProfile.city}
+                </p>
+                <p>
+                  <strong>Land:</strong> {customerProfile.country}
+                </p>
+                <p>
+                  <strong>Telefoon:</strong> {customerProfile.phone}
+                </p>
+              </>
+            ) : (
+              <p className="hint">Geen accountgegevens gevonden.</p>
+            )}
+          </div>
+        </section>
+      ) : null}
 
       {activeTab === 'requests' || !isAdmin ? (
         <section className="panel stack">

@@ -43,7 +43,15 @@ function LoginIcon() {
   )
 }
 
-export default function SiteHeader({ accountLabel = 'Inloggen', onAccountClick }) {
+export default function SiteHeader({
+  accountLabel = 'Inloggen',
+  isLoggedIn = false,
+  showRegisterButton = false,
+  onAccountClick,
+  onHomeClick,
+  onLogoutClick,
+  onRegisterClick,
+}) {
   return (
     <header className="site-header">
       <div className="site-header__inner">
@@ -54,10 +62,34 @@ export default function SiteHeader({ accountLabel = 'Inloggen', onAccountClick }
             <span className="site-header__tagline">Buis visualisatie · calculator</span>
           </div>
         </div>
-        <button type="button" className="site-header__login" onClick={onAccountClick}>
-          <LoginIcon />
-          <span>{accountLabel}</span>
-        </button>
+        <div className="site-header__actions">
+          {isLoggedIn ? (
+            <button type="button" className="site-header__login" onClick={onHomeClick}>
+              <span>Terug</span>
+            </button>
+          ) : null}
+          {showRegisterButton ? (
+            <button type="button" className="site-header__login" onClick={onRegisterClick}>
+              <span>Account toevoegen</span>
+            </button>
+          ) : null}
+          <div className="site-header__account">
+            <button type="button" className="site-header__login" onClick={onAccountClick}>
+              <LoginIcon />
+              <span>{accountLabel}</span>
+            </button>
+            {isLoggedIn ? (
+              <div className="site-header__menu">
+                <button type="button" onClick={onAccountClick}>
+                  Account
+                </button>
+                <button type="button" onClick={onLogoutClick}>
+                  Uitloggen
+                </button>
+              </div>
+            ) : null}
+          </div>
+        </div>
       </div>
     </header>
   )

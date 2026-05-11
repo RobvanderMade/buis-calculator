@@ -83,6 +83,47 @@ body.modal-open {
   white-space: nowrap;
 }
 
+.site-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.site-header__account {
+  position: relative;
+}
+
+.site-header__menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  display: none;
+  min-width: 160px;
+  padding: 6px;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+}
+
+.site-header__account:hover .site-header__menu,
+.site-header__account:focus-within .site-header__menu {
+  display: grid;
+  gap: 4px;
+}
+
+.site-header__menu button {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  color: #222;
+  background: #fff;
+}
+
+.site-header__menu button:hover {
+  background: #f0f0f0;
+}
+
 .site-header__login:hover {
   background: rgba(255, 255, 255, 0.22);
 }
@@ -353,6 +394,10 @@ input[readonly] {
   background: #fff;
 }
 
+.account-details p {
+  margin: 4px 0;
+}
+
 .table-wrap {
   width: 100%;
   overflow-x: auto;
@@ -435,6 +480,10 @@ table.admin-table td:first-child {
 
   .site-header__login span {
     display: none;
+  }
+
+  .site-header__actions .site-header__login:first-child span {
+    display: inline;
   }
 
   .customer-profile-fields {
