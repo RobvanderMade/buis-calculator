@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import SiteHeader from './SiteHeader.jsx'
 import PipeCanvas from './PipeCanvas.jsx'
-import { MATERIALS } from './materials.js'
+import { DEFAULT_MATERIALS } from './materials.js'
+import { loadMaterials } from './materialRepository.js'
 import {
   calculatePricePerStuk,
   calculateTotalLength,
@@ -24,6 +25,11 @@ function parseCoord(v) {
 export default function App() {
   const [rows, setRows] = useState(initialRows)
   const [materialIndex, setMaterialIndex] = useState(0)
+  const [materials, setMaterials] = useState(DEFAULT_MATERIALS)
+  const [materialStatus, setMaterialStatus] = useState({
+    loading: true,
+    message: 'Materialen laden...',
+  })
   const [aantalStuks, setAantalStuks] = useState(1)
   const [view, setView] = useState('XY')
   const [isGridFullscreen, setIsGridFullscreen] = useState(false)
@@ -35,7 +41,7 @@ export default function App() {
 
   const segmentLens = useMemo(() => rowSegmentLengths(lines), [lines])
   const totalLength = useMemo(() => calculateTotalLength(lines), [lines])
-  const material = MATERIALS[materialIndex]
+  const material = materials[materialIndex] ?? materials[0]
 
   const computed = useMemo(() => {
     const prijsPerMTR = material?.prijsPerMTR ?? 0
@@ -45,6 +51,34 @@ export default function App() {
 
   const displayPrijsPerStuk = computed.error ? 0 : computed.value
   const displayTotaal = displayPrijsPerStuk * Math.max(1, parseInt(String(aantalStuks), 10) || 1)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function fetchMaterials() {
+      const result = await loadMaterials()
+      if (cancelled) return
+
+      setMaterials(result.materials)
+      setMaterialStatus({
+        loading: false,
+        message:
+          result.message ||
+          (result.source === 'firebase-seeded'
+            ? 'Materialen zijn opgeslagen in Firebase en geladen.'
+            : 'Materialen geladen uit Firebase.'),
+      })
+    }
+
+    fetchMaterials()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (materialIndex >= materials.length) setMaterialIndex(0)
+  }, [materialIndex, materials.length])
 
   useEffect(() => {
     if (!isGridFullscreen) return undefined
@@ -132,14 +166,16 @@ export default function App() {
             <select
               id="materiaal"
               value={materialIndex}
+              disabled={materials.length === 0}
               onChange={(e) => setMaterialIndex(Number(e.target.value))}
             >
-              {MATERIALS.map((m, i) => (
-                <option key={m.materiaal} value={i}>
+              {materials.map((m, i) => (
+                <option key={m.id || m.materiaal} value={i}>
                   {m.materiaal}
                 </option>
               ))}
             </select>
+            <p className="status-text">{materialStatus.message}</p>
           </div>
 
           <table className="coord-table">

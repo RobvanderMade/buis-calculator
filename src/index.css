@@ -267,6 +267,12 @@ input[readonly] {
   line-height: 1.45;
 }
 
+.status-text {
+  margin: 6px 0 0;
+  font-size: 0.85rem;
+  color: #555;
+}
+
 .error-banner {
   background: #ffe8e8;
   border: 1px solid #e88;
