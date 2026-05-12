@@ -622,6 +622,33 @@ input:focus {
   background: var(--bg-elevated);
 }
 
+.data-card--request-open {
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.data-card--request-open:hover {
+  border-color: rgba(56, 189, 248, 0.45);
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.12);
+  background: #161f2c;
+}
+
+.data-card--request-open:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.data-card__open-hint {
+  margin: 10px 0 0;
+  font-size: 0.82rem;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.data-card__admin-actions {
+  margin-top: 8px;
+}
+
 .account-details p {
   margin: 4px 0;
 }

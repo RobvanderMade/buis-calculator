@@ -25,7 +25,7 @@ function parseNumber(value) {
   return Number.isFinite(number) ? number : 0
 }
 
-export default function Backoffice({ user, role, customerProfile, onLogout }) {
+export default function Backoffice({ user, role, customerProfile, onLogout, onOpenRequestInCalculator }) {
   const [message, setMessage] = useState('')
   const [materials, setMaterials] = useState([])
   const [requests, setRequests] = useState([])
@@ -120,6 +120,19 @@ export default function Backoffice({ user, role, customerProfile, onLogout }) {
     visibleRequests.length === 1 ? 'aanvraag' : 'aanvragen'
   }`
 
+  function handleRequestCardActivate(request) {
+    if (typeof onOpenRequestInCalculator !== 'function') return
+    onOpenRequestInCalculator(request)
+  }
+
+  function handleRequestCardKeyDown(event, request) {
+    if (typeof onOpenRequestInCalculator !== 'function') return
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      onOpenRequestInCalculator(request)
+    }
+  }
+
   return (
     <div className="backoffice stack">
       <div className="backoffice-header">
@@ -199,7 +212,25 @@ export default function Backoffice({ user, role, customerProfile, onLogout }) {
           {visibleRequests.length === 0 ? <p className="hint">Nog geen aanvragen.</p> : null}
           <div className="card-list">
             {visibleRequests.map((request) => (
-              <article className="data-card" key={request.id}>
+              <article
+                className={`data-card${onOpenRequestInCalculator ? ' data-card--request-open' : ''}`}
+                key={request.id}
+                role={onOpenRequestInCalculator ? 'button' : undefined}
+                tabIndex={onOpenRequestInCalculator ? 0 : undefined}
+                onClick={
+                  onOpenRequestInCalculator ? () => handleRequestCardActivate(request) : undefined
+                }
+                onKeyDown={
+                  onOpenRequestInCalculator
+                    ? (e) => handleRequestCardKeyDown(e, request)
+                    : undefined
+                }
+                aria-label={
+                  onOpenRequestInCalculator
+                    ? 'Aanvraag openen in calculator'
+                    : undefined
+                }
+              >
                 <div className="data-card__head">
                   <strong>{request.material?.materiaal || 'Onbekend materiaal'}</strong>
                   <span>{formatDate(request.createdAt)}</span>
@@ -221,20 +252,30 @@ export default function Backoffice({ user, role, customerProfile, onLogout }) {
                   Regels: {request.lines.map((line) => `X${line.x} Y${line.y} Z${line.z}`).join(' | ')}
                 </p>
                 {isAdmin ? (
-                  <label>
-                    Status
-                    <select
-                      value={request.status}
-                      onChange={(event) => handleStatusChange(request.id, event.target.value)}
-                    >
-                      <option value="nieuw">Nieuw</option>
-                      <option value="in_behandeling">In behandeling</option>
-                      <option value="afgerond">Afgerond</option>
-                    </select>
-                  </label>
+                  <div
+                    className="data-card__admin-actions"
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => e.stopPropagation()}
+                    role="presentation"
+                  >
+                    <label>
+                      Status
+                      <select
+                        value={request.status}
+                        onChange={(event) => handleStatusChange(request.id, event.target.value)}
+                      >
+                        <option value="nieuw">Nieuw</option>
+                        <option value="in_behandeling">In behandeling</option>
+                        <option value="afgerond">Afgerond</option>
+                      </select>
+                    </label>
+                  </div>
                 ) : (
                   <p>Status: {request.status}</p>
                 )}
+                {onOpenRequestInCalculator ? (
+                  <p className="data-card__open-hint">Klik om te openen in de calculator</p>
+                ) : null}
               </article>
             ))}
           </div>

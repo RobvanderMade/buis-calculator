@@ -31,6 +31,30 @@ function parseCoord(v) {
   return Number.isFinite(n) ? n : 0
 }
 
+function rowsFromRequestLines(lines) {
+  const raw = Array.isArray(lines) ? lines : []
+  if (raw.length === 0) return initialRows()
+  return raw.map((line) => ({
+    x: line.x ?? 0,
+    y: line.y ?? 0,
+    z: line.z ?? 0,
+  }))
+}
+
+function resolveMaterialIndex(requestMaterial, materialsList) {
+  if (!requestMaterial || !materialsList?.length) return 0
+  const byId = requestMaterial.id
+    ? materialsList.findIndex((m) => m.id === requestMaterial.id)
+    : -1
+  if (byId >= 0) return byId
+  const name = requestMaterial.materiaal
+  if (name != null && String(name).length > 0) {
+    const byName = materialsList.findIndex((m) => m.materiaal === name)
+    if (byName >= 0) return byName
+  }
+  return 0
+}
+
 export default function App() {
   const [rows, setRows] = useState(initialRows)
   const [materialIndex, setMaterialIndex] = useState(0)
@@ -123,6 +147,20 @@ export default function App() {
     setAantalStuks(1)
   }
 
+  function openRequestInCalculator(request) {
+    if (!request) return
+    setRows(rowsFromRequestLines(request.lines))
+    setMaterialIndex(resolveMaterialIndex(request.material, materials))
+    setAantalStuks(Math.max(1, parseInt(String(request.aantalStuks), 10) || 1))
+    setRequestStatus(
+      'Aanvraag geladen in de calculator. Je kunt gegevens aanpassen en opnieuw versturen.',
+    )
+    setActivePage('calculator')
+    navigate('/')
+    setLoginPanelOpen(false)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   async function handleLogin(nextSession) {
     const hasAdminRights = await loadAdminStatus(nextSession.user.uid)
     const role = hasAdminRights ? 'admin' : 'customer'
@@ -154,6 +192,38 @@ export default function App() {
   function navigate(nextPath) {
     window.history.pushState({}, '', nextPath)
     setPath(nextPath)
+  }
+
+  /** Laadt een opgeslagen aanvraag in de calculator (klant of admin). */
+  function openRequestInCalculator(request) {
+    if (!request) return
+    const rawLines =
+      Array.isArray(request.lines) && request.lines.length > 0
+        ? request.lines
+        : [{ x: 0, y: 0, z: 0 }]
+    setRows(
+      rawLines.map((line) => ({
+        x: Number(line.x) || 0,
+        y: Number(line.y) || 0,
+        z: Number(line.z) || 0,
+      })),
+    )
+    const mat = request.material
+    if (mat) {
+      const idx = materials.findIndex(
+        (m) =>
+          (mat.id && m.id === mat.id) ||
+          (mat.materiaal && m.materiaal === mat.materiaal),
+      )
+      if (idx >= 0) setMaterialIndex(idx)
+    }
+    setAantalStuks(Math.max(1, parseInt(String(request.aantalStuks), 10) || 1))
+    setRequestStatus(
+      'Deze aanvraag staat in de calculator. Pas desgewijst aan en verstuur opnieuw indien nodig.',
+    )
+    navigate('/')
+    setActivePage('calculator')
+    setView('XY')
   }
 
   async function submitRequest() {
@@ -235,7 +305,12 @@ export default function App() {
         {computed.error ? <div className="error-banner">{computed.error}</div> : null}
 
         {isAdminPage && session?.role === 'admin' ? (
-          <Backoffice user={session.user} role={session.role} onLogout={handleLogout} />
+          <Backoffice
+            user={session.user}
+            role={session.role}
+            onLogout={handleLogout}
+            onOpenRequestInCalculator={openRequestInCalculator}
+          />
         ) : isAdminPage ? (
           <div className="admin-login-page">
             <LoginPanel
@@ -251,6 +326,7 @@ export default function App() {
             role={session.role}
             customerProfile={session.customerProfile}
             onLogout={handleLogout}
+            onOpenRequestInCalculator={openRequestInCalculator}
           />
         ) : (
         <div className="container">
