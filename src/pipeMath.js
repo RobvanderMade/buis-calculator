@@ -31,6 +31,53 @@ export function rowSegmentLengths(lines) {
   return lines.map((line) => segmentLength(line.x, line.y, line.z))
 }
 
+export function rowSegmentStatuses(lines, material) {
+  const fallback = lines.map(() => ({
+    ok: false,
+    message: 'Geen materiaal geselecteerd.',
+  }))
+  if (!material) return fallback
+
+  const { klemLengte, radius } = material
+  const nonZero = []
+  for (let i = 0; i < lines.length; i++) {
+    const { x, y, z } = lines[i]
+    if (x !== 0 || y !== 0 || z !== 0) {
+      nonZero.push({ rowIndex: i, length: segmentLength(x, y, z) })
+    }
+  }
+
+  const firstRowIndex = nonZero[0]?.rowIndex
+  const lastRowIndex = nonZero[nonZero.length - 1]?.rowIndex
+
+  return lines.map((line, rowIndex) => {
+    const length = segmentLength(line.x, line.y, line.z)
+    if (line.x === 0 && line.y === 0 && line.z === 0) {
+      return { ok: false, message: 'Geen lijn ingevuld.' }
+    }
+
+    if (rowIndex === firstRowIndex && length <= klemLengte + radius) {
+      return {
+        ok: false,
+        message: `Eerste lijn moet langer zijn dan ${klemLengte + radius} mm.`,
+      }
+    }
+
+    if (rowIndex === lastRowIndex && length < 280) {
+      return { ok: false, message: 'Laatste lijn moet minimaal 280 mm zijn.' }
+    }
+
+    if (rowIndex !== firstRowIndex && rowIndex !== lastRowIndex && length <= klemLengte + 2 * radius) {
+      return {
+        ok: false,
+        message: `Tussenlijn moet langer zijn dan ${klemLengte + 2 * radius} mm.`,
+      }
+    }
+
+    return { ok: true, message: 'Regellengte akkoord.' }
+  })
+}
+
 /**
  * Validatie volgens oorspronkelijke regels (alleen niet-nul segmenten).
  * @returns {{ ok: true, message: string } | { ok: false, message: string }}

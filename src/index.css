@@ -89,6 +89,19 @@ body.modal-open {
   gap: 8px;
 }
 
+.site-header__user {
+  max-width: 220px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .site-header__account {
   position: relative;
 }
@@ -230,7 +243,7 @@ svg.pipe-canvas {
 table.coord-table {
   border-collapse: collapse;
   width: 100%;
-  max-width: 480px;
+  max-width: 560px;
   table-layout: fixed;
 }
 
@@ -251,10 +264,37 @@ table.coord-table td:first-child {
   width: 72px;
 }
 
+table.coord-table th:last-child,
+table.coord-table td:last-child {
+  width: 52px;
+}
+
 table.coord-table input[type='number'] {
   width: 100%;
   min-width: 0;
   padding: 4px 6px;
+}
+
+.line-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.line-status--ok {
+  color: #0f6b2f;
+  background: #dff7e7;
+}
+
+.line-status--warn {
+  color: #9a3412;
+  background: #ffedd5;
 }
 
 .stack {
@@ -485,6 +525,10 @@ table.admin-table td:first-child {
 
   .site-header__actions .site-header__login:first-child span {
     display: inline;
+  }
+
+  .site-header__user {
+    display: none;
   }
 
   .customer-profile-fields {

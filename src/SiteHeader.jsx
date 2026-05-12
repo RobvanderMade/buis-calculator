@@ -49,6 +49,7 @@ export default function SiteHeader({
   accountLabel = 'Inloggen',
   isLoggedIn = false,
   isAdmin = false,
+  userLabel = '',
   showBackButton = false,
   onAccountClick,
   onHomeClick,
@@ -85,6 +86,12 @@ export default function SiteHeader({
           </div>
         </div>
         <div className="site-header__actions">
+          {isLoggedIn && userLabel ? (
+            <span className="site-header__user" title={userLabel}>
+              {isAdmin ? 'Admin: ' : ''}
+              {userLabel}
+            </span>
+          ) : null}
           {showBackButton ? (
             <button type="button" className="site-header__login" onClick={onHomeClick}>
               <span>Terug</span>

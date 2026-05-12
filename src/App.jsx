@@ -14,6 +14,7 @@ import {
   calculatePricePerStuk,
   calculateTotalLength,
   rowSegmentLengths,
+  rowSegmentStatuses,
   validateLines,
 } from './pipeMath.js'
 
@@ -33,10 +34,7 @@ export default function App() {
   const [rows, setRows] = useState(initialRows)
   const [materialIndex, setMaterialIndex] = useState(0)
   const [materials, setMaterials] = useState(DEFAULT_MATERIALS)
-  const [materialStatus, setMaterialStatus] = useState({
-    loading: true,
-    message: 'Materialen laden...',
-  })
+  const [materialError, setMaterialError] = useState('')
   const [aantalStuks, setAantalStuks] = useState(1)
   const [view, setView] = useState('XY')
   const [isGridFullscreen, setIsGridFullscreen] = useState(false)
@@ -56,6 +54,7 @@ export default function App() {
   const segmentLens = useMemo(() => rowSegmentLengths(lines), [lines])
   const totalLength = useMemo(() => calculateTotalLength(lines), [lines])
   const material = materials[materialIndex] ?? materials[0]
+  const segmentStatuses = useMemo(() => rowSegmentStatuses(lines, material), [lines, material])
 
   const computed = useMemo(() => {
     const prijsPerMTR = material?.prijsPerMTR ?? 0
@@ -74,14 +73,7 @@ export default function App() {
       if (cancelled) return
 
       setMaterials(result.materials)
-      setMaterialStatus({
-        loading: false,
-        message:
-          result.message ||
-          (result.source === 'firebase-seeded'
-            ? 'Materialen zijn opgeslagen in Firebase en geladen.'
-            : 'Materialen geladen uit Firebase.'),
-      })
+      setMaterialError(result.source === 'local' && result.message ? result.message : '')
     }
 
     fetchMaterials()
@@ -128,11 +120,6 @@ export default function App() {
   function resetFields() {
     setRows(initialRows())
     setAantalStuks(1)
-  }
-
-  function runValidate() {
-    const res = validateLines(lines, material)
-    alert(res.message)
   }
 
   async function handleLogin(nextSession) {
@@ -215,6 +202,14 @@ export default function App() {
         accountLabel="My BendR"
         isLoggedIn={Boolean(session)}
         isAdmin={session?.role === 'admin'}
+        userLabel={
+          session
+            ? session.customerProfile?.name ||
+              session.customerProfile?.company ||
+              session.user?.email ||
+              ''
+            : ''
+        }
         showBackButton={Boolean(session) && (isAdminPage || activePage === 'customer')}
         onAccountClick={() => {
           if (session?.role === 'customer') {
@@ -273,7 +268,7 @@ export default function App() {
                 </option>
               ))}
             </select>
-            <p className="status-text">{materialStatus.message}</p>
+            {materialError ? <p className="status-text">{materialError}</p> : null}
           </div>
 
           <table className="coord-table">
@@ -284,6 +279,7 @@ export default function App() {
                 <th>Y (mm)</th>
                 <th>Z (mm)</th>
                 <th>Lengte (mm)</th>
+                <th>OK</th>
               </tr>
             </thead>
             <tbody>
@@ -300,6 +296,15 @@ export default function App() {
                     </td>
                   ))}
                   <td>{segmentLens[i].toFixed(2)}</td>
+                  <td>
+                    <span
+                      className={`line-status ${segmentStatuses[i].ok ? 'line-status--ok' : 'line-status--warn'}`}
+                      title={segmentStatuses[i].message}
+                      aria-label={segmentStatuses[i].message}
+                    >
+                      {segmentStatuses[i].ok ? '✓' : '⚠'}
+                    </span>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -313,10 +318,6 @@ export default function App() {
               Reset
             </button>
           </div>
-
-          <button type="button" className="success" onClick={runValidate}>
-            Invoer controleren
-          </button>
 
           <div>
             <label htmlFor="totalLength">Gestrekte lengte (maximaal 6000 mm):</label>
