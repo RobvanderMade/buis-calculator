@@ -19,6 +19,7 @@ export default function LoginPanel({
   const [mode, setMode] = useState(initialMode)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [profile, setProfile] = useState(emptyCustomerProfile)
   const [message, setMessage] = useState('')
 
@@ -129,12 +130,53 @@ export default function LoginPanel({
           {mode !== 'reset' ? (
             <label>
               Wachtwoord
-              <input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                required
-              />
+              <span className="password-field">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  aria-label={showPassword ? 'Wachtwoord verbergen' : 'Wachtwoord tonen'}
+                  title={showPassword ? 'Wachtwoord verbergen' : 'Wachtwoord tonen'}
+                >
+                  {showPassword ? (
+                    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                      <path
+                        d="M3 3l18 18M10.6 10.6a2 2 0 002.8 2.8M9.9 5.1A10 10 0 0112 5c5 0 9 4 10 7-.4 1-1.1 2.2-2.1 3.3M6.1 6.1C4 7.7 2.6 9.8 2 12c1 3 5 7 10 7 1.6 0 3.1-.3 4.4-.9"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.7"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  ) : (
+                    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                      <path
+                        d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.7"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="3"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.7"
+                      />
+                    </svg>
+                  )}
+                </button>
+              </span>
             </label>
           ) : null}
           {role === 'customer' && mode === 'register' ? (

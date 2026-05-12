@@ -190,7 +190,9 @@ export default function App() {
         prijsPerStuk: displayPrijsPerStuk,
         totaalPrijs: displayPrijsPerStuk * stuks,
       })
-      setRequestStatus('Aanvraag aangemaakt. Wij nemen deze in behandeling.')
+      setRequestStatus(
+        'Aanvraag aangemaakt. Na controle door onze engineer sturen wij je een orderbevestiging.',
+      )
     } catch (error) {
       setRequestStatus(`Aanvraag opslaan mislukt: ${error.message}`)
     }
@@ -343,18 +345,6 @@ export default function App() {
             />
           </div>
 
-          <p className="hint">
-            Is de invoer gecontroleerd? Log in met My BendR of maak een account aan om de aanvraag te
-            versturen.
-          </p>
-
-          <div className="row-btns">
-            <button type="button" className="primary" onClick={submitRequest}>
-              Aanvraag aanmaken
-            </button>
-          </div>
-          {requestStatus ? <p className="status-text">{requestStatus}</p> : null}
-
           <div>
             <label htmlFor="prijsPerStuk">Prijs per stuk (in €):</label>
             <br />
@@ -377,6 +367,21 @@ export default function App() {
               value={`${displayTotaal.toFixed(2)} €`}
             />
           </div>
+
+          <p className="hint">
+            {session?.role === 'customer'
+              ? 'Klaar met invoeren? Verstuur je aanvraag hieronder.'
+              : 'Inloggen met een My BendR account is verplicht om een aanvraag te versturen.'}
+          </p>
+
+          <div className="row-btns">
+            <button type="button" className="primary" onClick={submitRequest}>
+              {session?.role === 'customer'
+                ? 'Aanvraag aanmaken'
+                : 'Inloggen om aanvraag te versturen'}
+            </button>
+          </div>
+          {requestStatus ? <p className="status-text">{requestStatus}</p> : null}
         </div>
 
         <div className="panel panel--viz stack">

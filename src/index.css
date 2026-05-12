@@ -486,6 +486,38 @@ table.admin-table td:first-child {
   min-width: 0;
 }
 
+.password-field {
+  position: relative;
+  display: block;
+}
+
+.password-field input {
+  width: 100%;
+  padding-right: 40px;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #555;
+  cursor: pointer;
+}
+
+.password-toggle:hover {
+  color: #1a5fb4;
+  background: transparent;
+}
+
 .login-role-switch,
 .login-mode-switch {
   margin: 12px 0;
