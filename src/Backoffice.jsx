@@ -137,7 +137,7 @@ export default function Backoffice({ user, role, customerProfile, onLogout }) {
           className={activeTab === 'requests' ? 'view-active' : ''}
           onClick={() => setActiveTab('requests')}
         >
-          Aanvragen ({requests.length})
+          Aanvragen ({isAdmin ? requests.length : visibleRequests.length})
         </button>
         {isAdmin ? (
           <button
