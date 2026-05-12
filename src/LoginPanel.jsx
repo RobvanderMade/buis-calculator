@@ -58,7 +58,7 @@ export default function LoginPanel({
           createdAt: new Date().toISOString(),
         })
       }
-      onLogin({ user: result.user, role, customerProfile })
+      await onLogin({ user: result.user, role, customerProfile })
       setPassword('')
     } catch (error) {
       setMessage(`${mode === 'register' ? 'Account aanmaken' : mode === 'reset' ? 'Reset' : 'Inloggen'} mislukt: ${error.message}`)

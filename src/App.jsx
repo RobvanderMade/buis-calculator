@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { signOut } from 'firebase/auth'
 import Backoffice from './Backoffice.jsx'
 import { auth } from './firebase.js'
+import { loadAdminStatus } from './adminRepository.js'
 import { loadCustomerProfile } from './customerRepository.js'
 import LoginPanel from './LoginPanel.jsx'
 import SiteHeader from './SiteHeader.jsx'
@@ -135,17 +136,20 @@ export default function App() {
   }
 
   async function handleLogin(nextSession) {
+    const hasAdminRights = await loadAdminStatus(nextSession.user.uid)
+    const role = hasAdminRights ? 'admin' : 'customer'
+
     let customerProfile = nextSession.customerProfile ?? null
-    if (nextSession.role === 'customer' && !customerProfile) {
+    if (role === 'customer' && !customerProfile) {
       try {
         customerProfile = await loadCustomerProfile(nextSession.user.uid)
       } catch {
         customerProfile = null
       }
     }
-    setSession({ ...nextSession, customerProfile })
+    setSession({ ...nextSession, role, customerProfile })
     setLoginPanelOpen(false)
-    if (nextSession.role === 'admin') {
+    if (role === 'admin') {
       navigate('/admin')
     } else {
       navigate('/')
@@ -210,6 +214,7 @@ export default function App() {
       <SiteHeader
         accountLabel="My BendR"
         isLoggedIn={Boolean(session)}
+        isAdmin={session?.role === 'admin'}
         showBackButton={Boolean(session) && (isAdminPage || activePage === 'customer')}
         onAccountClick={() => {
           if (session?.role === 'customer') {

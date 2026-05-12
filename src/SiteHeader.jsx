@@ -48,6 +48,7 @@ function LoginIcon() {
 export default function SiteHeader({
   accountLabel = 'Inloggen',
   isLoggedIn = false,
+  isAdmin = false,
   showBackButton = false,
   onAccountClick,
   onHomeClick,
@@ -97,7 +98,7 @@ export default function SiteHeader({
             {isLoggedIn && menuOpen ? (
               <div className="site-header__menu" onMouseLeave={() => setMenuOpen(false)}>
                 <button type="button" onClick={handleMenuAccountClick}>
-                  Account
+                  {isAdmin ? 'Backoffice' : 'Account'}
                 </button>
                 <button type="button" onClick={handleMenuLogoutClick}>
                   Uitloggen
