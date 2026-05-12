@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { createMaterialId, deleteMaterial, loadMaterials, saveMaterial } from './materialRepository'
-import { loadRequests, updateRequestStatus } from './requestRepository'
+import { loadRequests, loadRequestsForUser, updateRequestStatus } from './requestRepository'
 
 const emptyMaterial = {
   id: '',
@@ -36,7 +36,10 @@ export default function Backoffice({ user, role, customerProfile, onLogout }) {
 
   async function refreshBackofficeData() {
     try {
-      const [materialResult, requestResult] = await Promise.all([loadMaterials(), loadRequests()])
+      const [materialResult, requestResult] = await Promise.all([
+        loadMaterials(),
+        isAdmin ? loadRequests() : loadRequestsForUser(user.uid),
+      ])
       setMaterials(materialResult.materials)
       setRequests(requestResult)
     } catch (error) {

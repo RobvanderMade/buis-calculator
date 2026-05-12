@@ -191,7 +191,7 @@ export default function App() {
         totaalPrijs: displayPrijsPerStuk * stuks,
       })
       setRequestStatus(
-        'Aanvraag aangemaakt. Na controle door onze engineer sturen wij je een orderbevestiging.',
+        'Aanvraag aangemaakt, bedankt. Na controle door onze engineer sturen wij je een orderbevestiging.',
       )
     } catch (error) {
       setRequestStatus(`Aanvraag opslaan mislukt: ${error.message}`)
