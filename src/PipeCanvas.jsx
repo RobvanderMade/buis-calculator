@@ -496,6 +496,35 @@ export default function PipeCanvas({ lines, view, radiusMm = 0, diameterMm = 0 }
     const hartLijnStroke = Math.min(2, Math.max(1, 1.25))
     const midStrokeW = Math.max(1, strokeW * 0.72)
     const highlightStrokeW = Math.max(0.6, strokeW * 0.22)
+
+    function endCapLine(point, neighbor, color, widthFactor) {
+      const dx = neighbor.x - point.sx
+      const dy = neighbor.y - point.sy
+      const len = Math.hypot(dx, dy)
+      if (len < 0.0001) return null
+      const half = (strokeW * widthFactor) / 2
+      const nx = -dy / len
+      const ny = dx / len
+      return {
+        x1: point.sx - nx * half,
+        y1: point.sy - ny * half,
+        x2: point.sx + nx * half,
+        y2: point.sy + ny * half,
+        color,
+      }
+    }
+
+    const startNeighbor = corners[1]?.Q1
+      ? { x: corners[1].Q1.x, y: corners[1].Q1.y }
+      : { x: projected[1]?.sx ?? projected[0].sx + 1, y: projected[1]?.sy ?? projected[0].sy }
+    const endNeighbor = corners[n - 2]?.Q2
+      ? { x: corners[n - 2].Q2.x, y: corners[n - 2].Q2.y }
+      : { x: projected[n - 2]?.sx ?? projected[n - 1].sx - 1, y: projected[n - 2]?.sy ?? projected[n - 1].sy }
+
+    const endCaps = [
+      endCapLine(projected[0], startNeighbor, '#1f2937', 0.98),
+      endCapLine(projected[n - 1], endNeighbor, '#1f2937', 0.98),
+    ].filter(Boolean)
     const pipeGraphics = (
       <g>
         {view === 'ISO' ? (
@@ -545,6 +574,18 @@ export default function PipeCanvas({ lines, view, radiusMm = 0, diameterMm = 0 }
           strokeLinejoin="round"
           opacity={0.55}
         />
+        {endCaps.map((cap, idx) => (
+          <line
+            key={`endcap-${idx}`}
+            x1={cap.x1}
+            y1={cap.y1}
+            x2={cap.x2}
+            y2={cap.y2}
+            stroke={cap.color}
+            strokeWidth={Math.max(1, strokeW * 0.18)}
+            strokeLinecap="butt"
+          />
+        ))}
       </g>
     )
 
