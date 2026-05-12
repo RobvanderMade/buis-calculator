@@ -97,7 +97,7 @@ function Scene3D({ lines, radiusMm, diameterMm }) {
 
   return (
     <>
-      <color attach="background" args={['#eceef2']} />
+      <color attach="background" args={['#0c1018']} />
       <ambientLight intensity={0.58} />
       <hemisphereLight color="#f0f4ff" groundColor="#8890a0" intensity={0.45} />
       <directionalLight

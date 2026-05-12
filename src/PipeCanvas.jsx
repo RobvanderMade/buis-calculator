@@ -152,7 +152,7 @@ function OverallViewDimensions({ bbox, scale, view, H, W }) {
         y1={yRef}
         x2={minSx}
         y2={yDim - yTick * tick}
-        stroke="#555"
+        stroke="var(--pipe-dim-stroke)"
         strokeWidth={1}
         strokeDasharray="4 3"
       />
@@ -161,42 +161,42 @@ function OverallViewDimensions({ bbox, scale, view, H, W }) {
         y1={yRef}
         x2={maxSx}
         y2={yDim - yTick * tick}
-        stroke="#555"
+        stroke="var(--pipe-dim-stroke)"
         strokeWidth={1}
         strokeDasharray="4 3"
       />
-      <line x1={minSx} y1={yDim} x2={maxSx} y2={yDim} stroke="#111" strokeWidth={1.5} />
-      <line x1={minSx} y1={yDim - tick} x2={minSx} y2={yDim + tick} stroke="#111" strokeWidth={1.5} />
-      <line x1={maxSx} y1={yDim - tick} x2={maxSx} y2={yDim + tick} stroke="#111" strokeWidth={1.5} />
+      <line x1={minSx} y1={yDim} x2={maxSx} y2={yDim} stroke="var(--pipe-dim-strong)" strokeWidth={1.5} />
+      <line x1={minSx} y1={yDim - tick} x2={minSx} y2={yDim + tick} stroke="var(--pipe-dim-strong)" strokeWidth={1.5} />
+      <line x1={maxSx} y1={yDim - tick} x2={maxSx} y2={yDim + tick} stroke="var(--pipe-dim-strong)" strokeWidth={1.5} />
       <text
         x={(minSx + maxSx) / 2}
         y={yDim + (dimBelow ? 18 : -12)}
-        fill="#111"
+        fill="var(--pipe-text-fill)"
         fontSize={13}
         fontWeight={700}
         textAnchor="middle"
         paintOrder="stroke"
-        stroke="rgba(255,255,255,0.9)"
+        stroke="var(--pipe-text-halo)"
         strokeWidth={4}
       >
         {wLab}
       </text>
 
-      <line x1={xRef} y1={minSy} x2={xDim} y2={minSy} stroke="#555" strokeWidth={1} strokeDasharray="4 3" />
-      <line x1={xRef} y1={maxSy} x2={xDim} y2={maxSy} stroke="#555" strokeWidth={1} strokeDasharray="4 3" />
-      <line x1={xDim} y1={minSy} x2={xDim} y2={maxSy} stroke="#111" strokeWidth={1.5} />
-      <line x1={xDim - tick} y1={minSy} x2={xDim + tick} y2={minSy} stroke="#111" strokeWidth={1.5} />
-      <line x1={xDim - tick} y1={maxSy} x2={xDim + tick} y2={maxSy} stroke="#111" strokeWidth={1.5} />
+      <line x1={xRef} y1={minSy} x2={xDim} y2={minSy} stroke="var(--pipe-dim-stroke)" strokeWidth={1} strokeDasharray="4 3" />
+      <line x1={xRef} y1={maxSy} x2={xDim} y2={maxSy} stroke="var(--pipe-dim-stroke)" strokeWidth={1} strokeDasharray="4 3" />
+      <line x1={xDim} y1={minSy} x2={xDim} y2={maxSy} stroke="var(--pipe-dim-strong)" strokeWidth={1.5} />
+      <line x1={xDim - tick} y1={minSy} x2={xDim + tick} y2={minSy} stroke="var(--pipe-dim-strong)" strokeWidth={1.5} />
+      <line x1={xDim - tick} y1={maxSy} x2={xDim + tick} y2={maxSy} stroke="var(--pipe-dim-strong)" strokeWidth={1.5} />
       <text
         x={xDim}
         y={midY}
-        fill="#111"
+        fill="var(--pipe-text-fill)"
         fontSize={13}
         fontWeight={700}
         textAnchor="middle"
         dominantBaseline="middle"
         paintOrder="stroke"
-        stroke="rgba(255,255,255,0.9)"
+        stroke="var(--pipe-text-halo)"
         strokeWidth={4}
         transform={`rotate(-90 ${xDim} ${midY})`}
       >
@@ -259,7 +259,7 @@ function SnijlijnDimension({
         y1={y1}
         x2={ax1}
         y2={ay1}
-        stroke="#888"
+        stroke="var(--pipe-dim-muted)"
         strokeWidth={1}
         strokeDasharray="3 3"
       />
@@ -268,7 +268,7 @@ function SnijlijnDimension({
         y1={y2}
         x2={ax2}
         y2={ay2}
-        stroke="#888"
+        stroke="var(--pipe-dim-muted)"
         strokeWidth={1}
         strokeDasharray="3 3"
       />
@@ -277,7 +277,7 @@ function SnijlijnDimension({
         y1={ay1 - tny}
         x2={ax1 + tnx}
         y2={ay1 + tny}
-        stroke="#222"
+        stroke="var(--pipe-dim-strong)"
         strokeWidth={1.2}
       />
       <line
@@ -285,20 +285,20 @@ function SnijlijnDimension({
         y1={ay2 - tny}
         x2={ax2 + tnx}
         y2={ay2 + tny}
-        stroke="#222"
+        stroke="var(--pipe-dim-strong)"
         strokeWidth={1.2}
       />
-      <line x1={ax1} y1={ay1} x2={ax2} y2={ay2} stroke="#222" strokeWidth={1.2} />
+      <line x1={ax1} y1={ay1} x2={ax2} y2={ay2} stroke="var(--pipe-dim-strong)" strokeWidth={1.2} />
       <text
         x={tcx}
         y={tcy}
-        fill="#111"
+        fill="var(--pipe-text-fill)"
         fontSize={12}
         fontWeight={600}
         textAnchor="middle"
         dominantBaseline="middle"
         paintOrder="stroke"
-        stroke="rgba(255,255,255,0.92)"
+        stroke="var(--pipe-text-halo)"
         strokeWidth={4}
         transform={`rotate(${angleDeg} ${tcx} ${tcy})`}
       >
@@ -313,8 +313,8 @@ function Axes({ view }) {
   const ap = 20
   const al = 50
   const arr = 5
-  const ax = '#4a4a4a'
-  const tx = '#222'
+  const ax = 'var(--pipe-axis)'
+  const tx = 'var(--pipe-axis-text)'
   if (view === 'XY') {
     return (
       <g aria-hidden>
@@ -511,15 +511,15 @@ export default function PipeCanvas({ lines, view, radiusMm = 0, diameterMm = 0 }
       : { x: projected[n - 2]?.sx ?? projected[n - 1].sx - 1, y: projected[n - 2]?.sy ?? projected[n - 1].sy }
 
     const endCaps = [
-      endCapLine(projected[0], startNeighbor, '#1f2937', 0.98),
-      endCapLine(projected[n - 1], endNeighbor, '#1f2937', 0.98),
+      endCapLine(projected[0], startNeighbor, 'var(--pipe-endcap)', 0.98),
+      endCapLine(projected[n - 1], endNeighbor, 'var(--pipe-endcap)', 0.98),
     ].filter(Boolean)
     const pipeGraphics = (
       <g>
         <path
           d={pathD}
           fill="none"
-          stroke="#4b5563"
+          stroke="var(--pipe-body-outer)"
           strokeWidth={strokeW}
           strokeLinecap="butt"
           strokeLinejoin="round"
@@ -527,7 +527,7 @@ export default function PipeCanvas({ lines, view, radiusMm = 0, diameterMm = 0 }
         <path
           d={pathD}
           fill="none"
-          stroke="#cbd5e1"
+          stroke="var(--pipe-body-mid)"
           strokeWidth={midStrokeW}
           strokeLinecap="butt"
           strokeLinejoin="round"
@@ -535,7 +535,7 @@ export default function PipeCanvas({ lines, view, radiusMm = 0, diameterMm = 0 }
         <path
           d={pathD}
           fill="none"
-          stroke="#f8fafc"
+          stroke="var(--pipe-body-hi)"
           strokeWidth={highlightStrokeW}
           strokeLinecap="butt"
           strokeLinejoin="round"
@@ -544,7 +544,7 @@ export default function PipeCanvas({ lines, view, radiusMm = 0, diameterMm = 0 }
         <path
           d={pathD}
           fill="none"
-          stroke="#1f2937"
+          stroke="var(--pipe-centerline)"
           strokeWidth={hartLijnStroke}
           strokeDasharray="6 5"
           strokeLinecap="butt"
@@ -628,7 +628,7 @@ export default function PipeCanvas({ lines, view, radiusMm = 0, diameterMm = 0 }
       <Axes view={view} />
       {pipeLayer}
       {radiusMm > 0 || diameterMm > 0 ? (
-        <text x={W - 12} y={H - 16} textAnchor="end" fill="#333" fontSize={15}>
+        <text x={W - 12} y={H - 16} textAnchor="end" fill="var(--pipe-caption)" fontSize={15}>
           {[
             diameterMm > 0 ? `Ø ${diameterMm} mm` : null,
             radiusMm > 0 ? `R ${radiusMm} mm` : null,
