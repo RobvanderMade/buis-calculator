@@ -3,15 +3,15 @@ import { getAuth } from 'firebase/auth'
 import { getDatabase } from 'firebase/database'
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyCG8OaDlFFWSk7hTTc2r-Is-Lrdt_Mubnw',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'productie-app.firebaseapp.com',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyBHkD9eU6zLMKFSZ2zcwvvJl1pbqs9sm1g',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'bendr-a35e7.firebaseapp.com',
   databaseURL:
     import.meta.env.VITE_FIREBASE_DATABASE_URL ||
-    'https://productie-app-default-rtdb.europe-west1.firebasedatabase.app',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'productie-app',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'productie-app.firebasestorage.app',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '411427524297',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:411427524297:web:d4bd076926e62eeb094718',
+    'https://bendr-a35e7-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'bendr-a35e7',
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'bendr-a35e7.firebasestorage.app',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '1054975607766',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:1054975607766:web:93f642c0e6f23943d91a77',
 }
 
 const hasFirebaseConfig =
