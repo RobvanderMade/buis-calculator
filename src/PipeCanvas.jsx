@@ -1,5 +1,7 @@
-import { useMemo } from 'react'
+import { lazy, Suspense, useMemo } from 'react'
 import { cumulativePoints, segmentLength } from './pipeMath'
+
+const PipeScene3D = lazy(() => import('./PipeScene3D.jsx'))
 
 function arrowPoints(x, y, size, angleDeg) {
   const rad = (angleDeg * Math.PI) / 180
@@ -105,8 +107,6 @@ function arcSamplePoints(O, r, Q1, Q2, cornerP) {
 
 /** Totale buitenmaat van het aanzicht (projectie + halve buis rond middenas) */
 function OverallViewDimensions({ bbox, scale, view, H, W }) {
-  if (view === 'ISO') return null
-
   const { minSx, maxSx, minSy, maxSy } = bbox
   const widthMm = (maxSx - minSx) / scale
   const heightMm = (maxSy - minSy) / scale
@@ -315,27 +315,6 @@ function Axes({ view }) {
   const arr = 5
   const ax = '#4a4a4a'
   const tx = '#222'
-  if (view === 'ISO') {
-    return (
-      <g aria-hidden>
-        <line x1={ap} y1={ap + 35} x2={ap + 44} y2={ap + 10} stroke={ax} strokeWidth={2} />
-        <polygon points={arrowPoints(ap + 44, ap + 10, arr, 30)} fill={ax} />
-        <text x={ap + 52} y={ap + 8} fill={tx} fontSize={16}>
-          X
-        </text>
-        <line x1={ap} y1={ap + 35} x2={ap - 2} y2={ap + 86} stroke={ax} strokeWidth={2} strokeDasharray="6 4" />
-        <polygon points={arrowPoints(ap - 2, ap + 86, arr, -92)} fill={ax} />
-        <text x={ap - 2} y={ap + 104} fill={tx} fontSize={16}>
-          Y
-        </text>
-        <line x1={ap} y1={ap + 35} x2={ap + 44} y2={ap + 60} stroke={ax} strokeWidth={2} />
-        <polygon points={arrowPoints(ap + 44, ap + 60, arr, -30)} fill={ax} />
-        <text x={ap + 52} y={ap + 68} fill={tx} fontSize={16}>
-          Z
-        </text>
-      </g>
-    )
-  }
   if (view === 'XY') {
     return (
       <g aria-hidden>
@@ -389,20 +368,30 @@ export default function PipeCanvas({ lines, view, radiusMm = 0, diameterMm = 0 }
   const H = 600
   const padding = 30
 
+  if (view === '3D') {
+    return (
+      <Suspense
+        fallback={
+          <div
+            className="pipe-canvas pipe-canvas--3d grid-bg"
+            style={{ width: W, height: H, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <span className="pipe-3d-loading">3D laden…</span>
+          </div>
+        }
+      >
+        <PipeScene3D lines={lines} radiusMm={radiusMm} diameterMm={diameterMm} width={W} height={H} />
+      </Suspense>
+    )
+  }
+
   const pipeLayer = useMemo(() => {
     const pts3 = cumulativePoints(lines)
 
     const projectRaw = (p) => {
       if (view === 'XY') return { x: p.x, y: p.y }
       if (view === 'XZ') return { x: p.x, y: p.z }
-      if (view === 'YZ') return { x: p.z, y: p.y }
-
-      const cos30 = Math.sqrt(3) / 2
-      const sin30 = 0.5
-      return {
-        x: (p.x - p.z) * cos30,
-        y: p.y + (p.x + p.z) * sin30,
-      }
+      return { x: p.z, y: p.y }
     }
 
     const rawProjected = pts3.map(projectRaw)
@@ -527,18 +516,6 @@ export default function PipeCanvas({ lines, view, radiusMm = 0, diameterMm = 0 }
     ].filter(Boolean)
     const pipeGraphics = (
       <g>
-        {view === 'ISO' ? (
-          <path
-            d={pathD}
-            fill="none"
-            stroke="#111827"
-            strokeWidth={Math.max(2, strokeW * 0.85)}
-            strokeLinecap="butt"
-            strokeLinejoin="round"
-            opacity={0.16}
-            transform="translate(16 22)"
-          />
-        ) : null}
         <path
           d={pathD}
           fill="none"
@@ -658,7 +635,7 @@ export default function PipeCanvas({ lines, view, radiusMm = 0, diameterMm = 0 }
           ]
             .filter(Boolean)
             .join(' · ')}
-          {view === 'ISO' ? ' (ISO-weergave)' : ' (2D-weergave)'}
+          {' (2D-weergave)'}
         </text>
       ) : null}
     </svg>
