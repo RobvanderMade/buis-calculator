@@ -105,6 +105,8 @@ function arcSamplePoints(O, r, Q1, Q2, cornerP) {
 
 /** Totale buitenmaat van het aanzicht (projectie + halve buis rond middenas) */
 function OverallViewDimensions({ bbox, scale, view, H, W }) {
+  if (view === 'ISO') return null
+
   const { minSx, maxSx, minSy, maxSy } = bbox
   const widthMm = (maxSx - minSx) / scale
   const heightMm = (maxSy - minSy) / scale
@@ -313,6 +315,27 @@ function Axes({ view }) {
   const arr = 5
   const ax = '#4a4a4a'
   const tx = '#222'
+  if (view === 'ISO') {
+    return (
+      <g aria-hidden>
+        <line x1={ap} y1={ap + 35} x2={ap + 44} y2={ap + 10} stroke={ax} strokeWidth={2} />
+        <polygon points={arrowPoints(ap + 44, ap + 10, arr, 30)} fill={ax} />
+        <text x={ap + 52} y={ap + 8} fill={tx} fontSize={16}>
+          X
+        </text>
+        <line x1={ap} y1={ap + 35} x2={ap - 2} y2={ap + 86} stroke={ax} strokeWidth={2} strokeDasharray="6 4" />
+        <polygon points={arrowPoints(ap - 2, ap + 86, arr, -92)} fill={ax} />
+        <text x={ap - 2} y={ap + 104} fill={tx} fontSize={16}>
+          Y
+        </text>
+        <line x1={ap} y1={ap + 35} x2={ap + 44} y2={ap + 60} stroke={ax} strokeWidth={2} />
+        <polygon points={arrowPoints(ap + 44, ap + 60, arr, -30)} fill={ax} />
+        <text x={ap + 52} y={ap + 68} fill={tx} fontSize={16}>
+          Z
+        </text>
+      </g>
+    )
+  }
   if (view === 'XY') {
     return (
       <g aria-hidden>
@@ -368,48 +391,52 @@ export default function PipeCanvas({ lines, view, radiusMm = 0, diameterMm = 0 }
 
   const pipeLayer = useMemo(() => {
     const pts3 = cumulativePoints(lines)
-    let minX = 0
-    let minY = 0
-    let minZ = 0
-    let maxX = 0
-    let maxY = 0
-    let maxZ = 0
-    for (const p of pts3) {
-      minX = Math.min(minX, p.x)
-      minY = Math.min(minY, p.y)
-      minZ = Math.min(minZ, p.z)
-      maxX = Math.max(maxX, p.x)
-      maxY = Math.max(maxY, p.y)
-      maxZ = Math.max(maxZ, p.z)
+
+    const projectRaw = (p) => {
+      if (view === 'XY') return { x: p.x, y: p.y }
+      if (view === 'XZ') return { x: p.x, y: p.z }
+      if (view === 'YZ') return { x: p.z, y: p.y }
+
+      const cos30 = Math.sqrt(3) / 2
+      const sin30 = 0.5
+      return {
+        x: (p.x - p.z) * cos30,
+        y: p.y + (p.x + p.z) * sin30,
+      }
     }
-    const spanX = maxX - minX || 1
-    const spanY = maxY - minY || 1
-    const spanZ = maxZ - minZ || 1
-    let scale = Math.min(
-      (W - 2 * padding) / spanX,
-      (H - 2 * padding) / spanY,
-      (H - 2 * padding) / spanZ,
-    )
+
+    const rawProjected = pts3.map(projectRaw)
+    let minRawX = 0
+    let minRawY = 0
+    let maxRawX = 0
+    let maxRawY = 0
+    for (const p of rawProjected) {
+      minRawX = Math.min(minRawX, p.x)
+      minRawY = Math.min(minRawY, p.y)
+      maxRawX = Math.max(maxRawX, p.x)
+      maxRawY = Math.max(maxRawY, p.y)
+    }
+
+    const spanRawX = maxRawX - minRawX || 1
+    const spanRawY = maxRawY - minRawY || 1
+    let scale = Math.min((W - 2 * padding) / spanRawX, (H - 2 * padding) / spanRawY)
     /** Extra marge zodat dikke buis (stroke) niet afsnijdt; kort schaal licht in */
     for (let iter = 0; iter < 3; iter++) {
       const sw = diameterMm > 0 ? Math.max(1, diameterMm * scale) : 4
       const padExtra = sw / 2 + 8
       scale = Math.min(
-        (W - 2 * padding - 2 * padExtra) / spanX,
-        (H - 2 * padding - 2 * padExtra) / spanY,
-        (H - 2 * padding - 2 * padExtra) / spanZ,
+        (W - 2 * padding - 2 * padExtra) / spanRawX,
+        (H - 2 * padding - 2 * padExtra) / spanRawY,
       )
     }
     const strokeW = diameterMm > 0 ? Math.max(1, diameterMm * scale) : 4
     const padExtra = strokeW / 2 + 8
-    const offsetX = -minX * scale + padding + padExtra
-    const offsetY = -minY * scale + padding + padExtra
-    const offsetZ = -minZ * scale + padding + padExtra
+    const offsetX = -minRawX * scale + (W - spanRawX * scale) / 2
+    const offsetY = -minRawY * scale + (H - spanRawY * scale) / 2
 
     const project = (p) => {
-      if (view === 'XY') return { sx: p.x * scale + offsetX, sy: p.y * scale + offsetY }
-      if (view === 'XZ') return { sx: p.x * scale + offsetX, sy: p.z * scale + offsetZ }
-      return { sx: p.z * scale + offsetZ, sy: p.y * scale + offsetY }
+      const projected = projectRaw(p)
+      return { sx: projected.x * scale + offsetX, sy: projected.y * scale + offsetY }
     }
 
     const projected = pts3.map(project)
@@ -467,24 +494,56 @@ export default function PipeCanvas({ lines, view, radiusMm = 0, diameterMm = 0 }
     }
 
     const hartLijnStroke = Math.min(2, Math.max(1, 1.25))
+    const midStrokeW = Math.max(1, strokeW * 0.72)
+    const highlightStrokeW = Math.max(0.6, strokeW * 0.22)
     const pipeGraphics = (
       <g>
+        {view === 'ISO' ? (
+          <path
+            d={pathD}
+            fill="none"
+            stroke="#111827"
+            strokeWidth={Math.max(2, strokeW * 0.85)}
+            strokeLinecap="butt"
+            strokeLinejoin="round"
+            opacity={0.16}
+            transform="translate(16 22)"
+          />
+        ) : null}
         <path
           d={pathD}
           fill="none"
-          stroke="#c5cad1"
+          stroke="#4b5563"
           strokeWidth={strokeW}
-          strokeLinecap="round"
+          strokeLinecap="butt"
           strokeLinejoin="round"
         />
         <path
           d={pathD}
           fill="none"
-          stroke="#6f7378"
+          stroke="#cbd5e1"
+          strokeWidth={midStrokeW}
+          strokeLinecap="butt"
+          strokeLinejoin="round"
+        />
+        <path
+          d={pathD}
+          fill="none"
+          stroke="#f8fafc"
+          strokeWidth={highlightStrokeW}
+          strokeLinecap="butt"
+          strokeLinejoin="round"
+          opacity={0.85}
+        />
+        <path
+          d={pathD}
+          fill="none"
+          stroke="#1f2937"
           strokeWidth={hartLijnStroke}
           strokeDasharray="6 5"
-          strokeLinecap="round"
+          strokeLinecap="butt"
           strokeLinejoin="round"
+          opacity={0.55}
         />
       </g>
     )
@@ -558,7 +617,7 @@ export default function PipeCanvas({ lines, view, radiusMm = 0, diameterMm = 0 }
           ]
             .filter(Boolean)
             .join(' · ')}
-          {' (2D-weergave)'}
+          {view === 'ISO' ? ' (ISO-weergave)' : ' (2D-weergave)'}
         </text>
       ) : null}
     </svg>

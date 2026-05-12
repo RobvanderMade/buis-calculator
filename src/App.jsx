@@ -385,6 +385,7 @@ export default function App() {
               { id: 'XY', label: 'Vooraanzicht (XY)' },
               { id: 'XZ', label: 'Bovenaanzicht (XZ)' },
               { id: 'YZ', label: 'Zijaanzicht (YZ)' },
+              { id: 'ISO', label: 'ISO aanzicht' },
             ].map((b) => (
               <button
                 key={b.id}
