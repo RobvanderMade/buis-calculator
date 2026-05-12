@@ -420,7 +420,7 @@ table.admin-table td:first-child {
 }
 
 .login-card {
-  width: min(440px, 100%);
+  width: min(560px, 100%);
   padding: 18px;
   border-radius: 8px;
   background: #fff;
@@ -438,6 +438,12 @@ table.admin-table td:first-child {
   flex-direction: column;
   gap: 5px;
   font-weight: 600;
+  min-width: 0;
+}
+
+.login-card input {
+  width: 100%;
+  min-width: 0;
 }
 
 .login-role-switch,

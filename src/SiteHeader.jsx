@@ -79,8 +79,8 @@ export default function SiteHeader({
         <div className="site-header__brand">
           <LogoMark />
           <div className="site-header__titles">
-            <span className="site-header__name">Vandema Products</span>
-            <span className="site-header__tagline">Buis visualisatie · calculator</span>
+            <span className="site-header__name">BendR</span>
+            <span className="site-header__tagline">Buis buigen · online calculator</span>
           </div>
         </div>
         <div className="site-header__actions">
