@@ -6,6 +6,7 @@ import { loadAdminStatus } from './adminRepository.js'
 import { loadCustomerProfile } from './customerRepository.js'
 import LoginPanel from './LoginPanel.jsx'
 import SiteHeader from './SiteHeader.jsx'
+import SiteFooter from './SiteFooter.jsx'
 import PipeCanvas from './PipeCanvas.jsx'
 import { DEFAULT_MATERIALS } from './materials.js'
 import { loadMaterials } from './materialRepository.js'
@@ -444,6 +445,7 @@ export default function App() {
         </div>
         )}
       </div>
+      <SiteFooter />
       {loginPanelOpen ? (
         <LoginPanel
           fixedRole="customer"

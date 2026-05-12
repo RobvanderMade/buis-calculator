@@ -145,6 +145,59 @@ body.modal-open {
   box-sizing: border-box;
 }
 
+.site-footer {
+  flex-shrink: 0;
+  margin-top: 32px;
+  background: #0d1b2a;
+  color: #d6dde6;
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.site-footer a {
+  color: #9ec5ff;
+  text-decoration: none;
+}
+
+.site-footer a:hover {
+  text-decoration: underline;
+}
+
+.site-footer__inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 28px 20px 18px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 24px;
+}
+
+.site-footer__col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.site-footer__title {
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 4px;
+  letter-spacing: 0.02em;
+}
+
+.site-footer__bottom {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 12px 20px 18px;
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: #aab5c2;
+}
+
 .container {
   display: flex;
   flex-wrap: wrap;
