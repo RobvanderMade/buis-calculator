@@ -47,6 +47,25 @@ function pushLine(out, from, to, maxStepMm) {
   }
 }
 
+function filletArcLengthMm(O, r, Q1, Q2) {
+  const u = new THREE.Vector3().subVectors(Q1, O)
+  const rLen = u.length()
+  if (rLen < 1e-6) return 0
+  u.multiplyScalar(1 / rLen)
+  const cross = new THREE.Vector3().crossVectors(
+    new THREE.Vector3().subVectors(Q1, O),
+    new THREE.Vector3().subVectors(Q2, O),
+  )
+  if (cross.lengthSq() < 1e-14) return Q1.distanceTo(Q2)
+  const axis = cross.normalize()
+  const v = new THREE.Vector3().crossVectors(axis, u).normalize()
+  const w2 = new THREE.Vector3().subVectors(Q2, O)
+  const cosSigma = Math.min(1, Math.max(-1, w2.dot(u) / rLen))
+  const sinSigma = w2.dot(v) / rLen
+  const sigma = Math.atan2(sinSigma, cosSigma)
+  return r * Math.abs(sigma)
+}
+
 function pushArc(out, O, r, Q1, Q2) {
   const u = new THREE.Vector3().subVectors(Q1, O)
   const rLen = u.length()
@@ -108,6 +127,39 @@ export function buildCenterlinePoints(cumulativePoints, radiusMm) {
   }
 
   return out
+}
+
+/**
+ * Werkelijke gestrekte lengte (mm) langs middenlijn met bochten volgens R.
+ * Zelfde meetkunde als buildCenterlinePoints, analytisch (geen discretisatie).
+ */
+export function centerlineLengthMm(cumulativePoints, radiusMm) {
+  const V = cumulativePoints.map((p) => new THREE.Vector3(p.x, -p.y, p.z))
+  const n = V.length
+  if (n <= 1) return 0
+
+  const R = Math.max(0, radiusMm || 0)
+  let pos = V[0].clone()
+  let total = 0
+
+  for (let e = 0; e < n - 1; e++) {
+    const endV = V[e + 1]
+    const hasNext = e + 2 < n
+    let bend = null
+    if (hasNext && e + 1 >= 1 && e + 1 <= n - 2 && R > 1e-9) {
+      bend = computeFillet3D(V[e], V[e + 1], V[e + 2], R)
+    }
+    if (bend) {
+      total += pos.distanceTo(bend.Q1)
+      total += filletArcLengthMm(bend.O, bend.r, bend.Q1, bend.Q2)
+      pos.copy(bend.Q2)
+    } else {
+      total += pos.distanceTo(endV)
+      pos.copy(endV)
+    }
+  }
+
+  return total
 }
 
 /** Voor TubeGeometry: vloeiende polyline door mm-punten. */

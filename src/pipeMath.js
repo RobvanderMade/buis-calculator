@@ -1,14 +1,21 @@
+import { centerlineLengthMm } from './pipeCenterline3D'
+
 export function segmentLength(x, y, z) {
   return Math.sqrt(x * x + y * y + z * z)
 }
 
-/** Som van segmentlengtes (delta X/Y/Z per regel) */
-export function calculateTotalLength(lines) {
+/** Som van tabelsegmentlengtes (delta X/Y/Z per regel, zonder bochtcorrectie) */
+export function sumSegmentLengths(lines) {
   let total = 0
   for (const line of lines) {
     total += segmentLength(line.x, line.y, line.z)
   }
   return total
+}
+
+/** Gestrekte lengte langs middenlijn (rechte stukken + bochten volgens radiusMm) */
+export function calculateTotalLength(lines, radiusMm = 0) {
+  return centerlineLengthMm(cumulativePoints(lines), radiusMm)
 }
 
 /** Cumulatieve punten vanaf oorsprong: [0,0,0], dan eindpunten */

@@ -281,6 +281,26 @@ body.modal-open {
   box-shadow: var(--shadow-soft);
 }
 
+.calculator-welcome {
+  margin-bottom: 4px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.calculator-welcome h2 {
+  margin: 0 0 8px;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.calculator-welcome p {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.55;
+  font-size: 0.95rem;
+}
+
 .panel label,
 .panel strong {
   color: var(--text);
@@ -610,6 +630,47 @@ input:focus {
   align-items: end;
 }
 
+.site-content-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.site-content-form__group {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+}
+
+.site-content-form__group legend {
+  grid-column: 1 / -1;
+  padding: 0 4px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.site-content-form__group label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.site-content-form__group input,
+.site-content-form__group textarea {
+  width: 100%;
+}
+
+.site-content-form__full {
+  grid-column: 1 / -1;
+}
+
 .card-list {
   display: grid;
   gap: 12px;
@@ -645,8 +706,69 @@ input:focus {
   font-weight: 600;
 }
 
+.data-card__head-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.request-number {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.data-card__head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.icon-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.icon-btn:hover {
+  color: var(--text);
+  border-color: var(--text-dim);
+}
+
+.icon-btn--danger:hover {
+  color: var(--danger-text);
+  border-color: var(--danger-border);
+  background: var(--danger-bg);
+}
+
 .data-card__admin-actions {
   margin-top: 8px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .account-details p {

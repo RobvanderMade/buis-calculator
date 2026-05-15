@@ -10,6 +10,8 @@ import SiteFooter from './SiteFooter.jsx'
 import PipeCanvas from './PipeCanvas.jsx'
 import { DEFAULT_MATERIALS } from './materials.js'
 import { loadMaterials } from './materialRepository.js'
+import { DEFAULT_SITE_CONTENT } from './siteContent.js'
+import { subscribeSiteContent } from './siteContentRepository.js'
 import { createRequest } from './requestRepository.js'
 import {
   calculatePricePerStuk,
@@ -69,6 +71,7 @@ export default function App() {
   const [loginInitialMode, setLoginInitialMode] = useState('login')
   const [session, setSession] = useState(null)
   const [requestStatus, setRequestStatus] = useState('')
+  const [siteContent, setSiteContent] = useState(DEFAULT_SITE_CONTENT)
   const isAdminPage = path === '/admin'
 
   const lines = useMemo(
@@ -76,9 +79,12 @@ export default function App() {
     [rows],
   )
 
-  const segmentLens = useMemo(() => rowSegmentLengths(lines), [lines])
-  const totalLength = useMemo(() => calculateTotalLength(lines), [lines])
   const material = materials[materialIndex] ?? materials[0]
+  const segmentLens = useMemo(() => rowSegmentLengths(lines), [lines])
+  const totalLength = useMemo(
+    () => calculateTotalLength(lines, material?.radius ?? 0),
+    [lines, material],
+  )
   const segmentStatuses = useMemo(() => rowSegmentStatuses(lines, material), [lines, material])
 
   const computed = useMemo(() => {
@@ -105,6 +111,14 @@ export default function App() {
     return () => {
       cancelled = true
     }
+  }, [])
+
+  useEffect(() => {
+    const unsubscribe = subscribeSiteContent(
+      (result) => setSiteContent(result.content),
+      { seedIfEmpty: true },
+    )
+    return unsubscribe
   }, [])
 
   useEffect(() => {
@@ -250,7 +264,7 @@ export default function App() {
 
     try {
       const stuks = Math.max(1, parseInt(String(aantalStuks), 10) || 1)
-      await createRequest({
+      const created = await createRequest({
         customerUid: session?.role === 'customer' ? session.user.uid : '',
         customerEmail: session?.role === 'customer' ? session.user.email : '',
         customerProfile: session.customerProfile,
@@ -262,7 +276,9 @@ export default function App() {
         totaalPrijs: displayPrijsPerStuk * stuks,
       })
       setRequestStatus(
-        'Aanvraag aangemaakt, bedankt. Na controle door onze engineer sturen wij je een orderbevestiging.',
+        created.requestNumber
+          ? `Aanvraag ${created.requestNumber} is aangemaakt, bedankt. Na controle door onze engineer sturen wij je een orderbevestiging.`
+          : 'Aanvraag aangemaakt, bedankt. Na controle door onze engineer sturen wij je een orderbevestiging.',
       )
     } catch (error) {
       setRequestStatus(`Aanvraag opslaan mislukt: ${error.message}`)
@@ -331,6 +347,15 @@ export default function App() {
         ) : (
         <div className="container">
         <div className="panel stack">
+          <div className="calculator-welcome">
+            <h2>{siteContent.welcome.title}</h2>
+            <p>
+              {session?.customerProfile?.name
+                ? `Hoi ${session.customerProfile.name}, `
+                : ''}
+              {siteContent.welcome.body}
+            </p>
+          </div>
           <div>
             <label htmlFor="materiaal">
               <strong>Kies materiaal &amp; radius:</strong>
@@ -521,7 +546,7 @@ export default function App() {
         </div>
         )}
       </div>
-      <SiteFooter />
+      <SiteFooter footer={siteContent.footer} />
       {loginPanelOpen ? (
         <LoginPanel
           fixedRole="customer"
