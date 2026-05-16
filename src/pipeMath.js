@@ -1,4 +1,5 @@
 import { centerlineLengthMm } from './pipeCenterline3D'
+import { DEFAULT_PRICING } from './pricing'
 
 export function segmentLength(x, y, z) {
   return Math.sqrt(x * x + y * y + z * z)
@@ -133,11 +134,13 @@ export function validateLines(lines, material) {
 
 /**
  * Prijs per stuk (zelfde formule als origineel, met guards voor randgevallen).
+ * @param {typeof DEFAULT_PRICING} [pricing]
  */
-export function calculatePricePerStuk(totalLength, prijsPerMTR, aantalStuks, lines) {
-  if (totalLength >= 6000) {
+export function calculatePricePerStuk(totalLength, prijsPerMTR, aantalStuks, lines, pricing = DEFAULT_PRICING) {
+  const maxLengte = pricing.maxGestrekteLengteMm ?? DEFAULT_PRICING.maxGestrekteLengteMm
+  if (totalLength >= maxLengte) {
     return {
-      error: 'De totale lengte is te lang. Deze moet korter zijn dan 6000 mm.',
+      error: `De totale lengte is te lang. Deze moet korter zijn dan ${maxLengte} mm.`,
       value: 0,
     }
   }
@@ -145,17 +148,18 @@ export function calculatePricePerStuk(totalLength, prijsPerMTR, aantalStuks, lin
     return { error: null, value: 0 }
   }
   let pricePerPiece = 0
-  const pricePerLine = 2
   let totalLines = 0
   for (let i = 1; i < lines.length; i++) {
     const { x, y, z } = lines[i]
     if (x !== 0 || y !== 0 || z !== 0) totalLines++
   }
-  pricePerPiece += totalLines * pricePerLine
-  const pricePerTube = 6 * prijsPerMTR
-  const stuksUitBuis = Math.max(1, Math.floor(5980 / totalLength))
+  pricePerPiece += totalLines * (pricing.prijsPerLijn ?? DEFAULT_PRICING.prijsPerLijn)
+  const pricePerTube =
+    (pricing.buisMeterFactor ?? DEFAULT_PRICING.buisMeterFactor) * prijsPerMTR
+  const buisLengte = pricing.buisLengteMm ?? DEFAULT_PRICING.buisLengteMm
+  const stuksUitBuis = Math.max(1, Math.floor(buisLengte / totalLength))
   pricePerPiece += pricePerTube / stuksUitBuis
-  pricePerPiece += 60 / Math.max(1, aantalStuks)
+  pricePerPiece += (pricing.vasteKosten ?? DEFAULT_PRICING.vasteKosten) / Math.max(1, aantalStuks)
   return { error: null, value: pricePerPiece }
 }
 

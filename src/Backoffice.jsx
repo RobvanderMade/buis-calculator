@@ -12,6 +12,8 @@ import {
   loadRequestsForUser,
   updateRequestStatus,
 } from './requestRepository'
+import { DEFAULT_PRICING } from './pricing'
+import { savePricing, subscribePricing } from './pricingRepository'
 import { DEFAULT_SITE_CONTENT } from './siteContent'
 import { saveSiteContent, subscribeSiteContent } from './siteContentRepository'
 
@@ -47,6 +49,8 @@ export default function Backoffice({ user, role, customerProfile, onLogout, onOp
   const [editing, setEditing] = useState(emptyMaterial)
   const [siteContent, setSiteContent] = useState(DEFAULT_SITE_CONTENT)
   const [siteContentSource, setSiteContentSource] = useState('')
+  const [pricing, setPricing] = useState(DEFAULT_PRICING)
+  const [pricingSource, setPricingSource] = useState('')
   const [activeTab, setActiveTab] = useState('requests')
 
   const isAdmin = role === 'admin'
@@ -62,11 +66,20 @@ export default function Backoffice({ user, role, customerProfile, onLogout, onOp
     setSiteContentSource(result.source || '')
   }
 
+  function applyPricingResult(result) {
+    setPricing(result.pricing)
+    setPricingSource(result.source || '')
+  }
+
   function updateSiteContentField(section, key, value) {
     setSiteContent((prev) => ({
       ...prev,
       [section]: { ...prev[section], [key]: value },
     }))
+  }
+
+  function updatePricingField(key, value) {
+    setPricing((prev) => ({ ...prev, [key]: value }))
   }
 
   async function refreshBackofficeData() {
@@ -93,6 +106,7 @@ export default function Backoffice({ user, role, customerProfile, onLogout, onOp
 
     const unsubscribeMaterials = subscribeMaterials(applyMaterialResult, { seedIfEmpty: false })
     const unsubscribeContent = subscribeSiteContent(applySiteContentResult, { seedIfEmpty: false })
+    const unsubscribePricing = subscribePricing(applyPricingResult, { seedIfEmpty: false })
 
     loadRequests()
       .then(setRequests)
@@ -101,6 +115,7 @@ export default function Backoffice({ user, role, customerProfile, onLogout, onOp
     return () => {
       unsubscribeMaterials()
       unsubscribeContent()
+      unsubscribePricing()
     }
   }, [isAdmin, user.uid])
 
@@ -146,6 +161,24 @@ export default function Backoffice({ user, role, customerProfile, onLogout, onOp
       setMessage('Teksten en footer opgeslagen in Firebase.')
     } catch (error) {
       setMessage(`Teksten opslaan mislukt: ${error.message}`)
+    }
+  }
+
+  async function handleSavePricing(event) {
+    event.preventDefault()
+    if (!isAdmin) return
+    setMessage('')
+    try {
+      await savePricing({
+        prijsPerLijn: parseNumber(pricing.prijsPerLijn),
+        buisMeterFactor: parseNumber(pricing.buisMeterFactor),
+        buisLengteMm: parseNumber(pricing.buisLengteMm),
+        vasteKosten: parseNumber(pricing.vasteKosten),
+        maxGestrekteLengteMm: parseNumber(pricing.maxGestrekteLengteMm),
+      })
+      setMessage('Berekeningsprijzen opgeslagen in Firebase.')
+    } catch (error) {
+      setMessage(`Prijzen opslaan mislukt: ${error.message}`)
     }
   }
 
@@ -240,6 +273,15 @@ export default function Backoffice({ user, role, customerProfile, onLogout, onOp
             onClick={() => setActiveTab('materials')}
           >
             Materialen ({materials.length})
+          </button>
+        ) : null}
+        {isAdmin ? (
+          <button
+            type="button"
+            className={activeTab === 'pricing' ? 'view-active' : ''}
+            onClick={() => setActiveTab('pricing')}
+          >
+            Berekeningsprijzen
           </button>
         ) : null}
         {isAdmin ? (
@@ -516,6 +558,83 @@ export default function Backoffice({ user, role, customerProfile, onLogout, onOp
               </tbody>
             </table>
           </div>
+        </section>
+      )}
+
+      {isAdmin && activeTab === 'pricing' && (
+        <section className="panel stack">
+          <h3>Berekeningsprijzen</h3>
+          <p className="hint">
+            {pricingSource === 'firebase' || pricingSource === 'firebase-seeded'
+              ? 'Deze waarden worden gebruikt in de calculator. Prijs per meter staat per materiaal.'
+              : 'Prijzen laden…'}
+          </p>
+          <form className="material-form pricing-form" onSubmit={handleSavePricing}>
+            <label>
+              Prijs per lijn (€)
+              <input
+                type="number"
+                step="0.01"
+                min={0}
+                value={pricing.prijsPerLijn}
+                onChange={(event) => updatePricingField('prijsPerLijn', event.target.value)}
+              />
+              <span className="hint">Extra kosten per bocht/regel na de eerste.</span>
+            </label>
+            <label>
+              Buis-meterfactor
+              <input
+                type="number"
+                step="0.01"
+                min={0}
+                value={pricing.buisMeterFactor}
+                onChange={(event) => updatePricingField('buisMeterFactor', event.target.value)}
+              />
+              <span className="hint">
+                Buiskosten = factor × prijs per meter (materiaal).
+              </span>
+            </label>
+            <label>
+              Buislengte (mm)
+              <input
+                type="number"
+                step="1"
+                min={1}
+                value={pricing.buisLengteMm}
+                onChange={(event) => updatePricingField('buisLengteMm', event.target.value)}
+              />
+              <span className="hint">Beschikbare lengte om stuks per buis te berekenen.</span>
+            </label>
+            <label>
+              Vaste kosten (€)
+              <input
+                type="number"
+                step="0.01"
+                min={0}
+                value={pricing.vasteKosten}
+                onChange={(event) => updatePricingField('vasteKosten', event.target.value)}
+              />
+              <span className="hint">Wordt verdeeld over het aantal stuks.</span>
+            </label>
+            <label>
+              Max. gestrekte lengte (mm)
+              <input
+                type="number"
+                step="1"
+                min={1}
+                value={pricing.maxGestrekteLengteMm}
+                onChange={(event) =>
+                  updatePricingField('maxGestrekteLengteMm', event.target.value)
+                }
+              />
+              <span className="hint">Boven deze lengte geeft de calculator een foutmelding.</span>
+            </label>
+            <div className="row-btns">
+              <button type="submit" className="primary">
+                Prijzen opslaan
+              </button>
+            </div>
+          </form>
         </section>
       )}
 

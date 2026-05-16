@@ -9,7 +9,9 @@ import SiteHeader from './SiteHeader.jsx'
 import SiteFooter from './SiteFooter.jsx'
 import PipeCanvas from './PipeCanvas.jsx'
 import { DEFAULT_MATERIALS } from './materials.js'
-import { loadMaterials } from './materialRepository.js'
+import { subscribeMaterials } from './materialRepository.js'
+import { DEFAULT_PRICING } from './pricing.js'
+import { normalizePricing, subscribePricing } from './pricingRepository.js'
 import { DEFAULT_SITE_CONTENT } from './siteContent.js'
 import { subscribeSiteContent } from './siteContentRepository.js'
 import { createRequest } from './requestRepository.js'
@@ -31,6 +33,20 @@ const initialRows = () =>
 function parseCoord(v) {
   const n = Number.parseInt(String(v), 10)
   return Number.isFinite(n) ? n : 0
+}
+
+function isCoordZero(value) {
+  return value === 0 || value === '0'
+}
+
+/** Voorkomt "05" bij eerste cijfer na een standaard-0 (o.a. bij kolom invullen met Tab). */
+function normalizeCoordInput(prev, raw) {
+  const next = String(raw)
+  if (next === '' || next === '-') return next
+  if (isCoordZero(prev) && /^-?0\d/.test(next)) {
+    return String(Number.parseInt(next, 10))
+  }
+  return raw
 }
 
 function rowsFromRequestLines(lines) {
@@ -62,6 +78,7 @@ export default function App() {
   const [materialIndex, setMaterialIndex] = useState(0)
   const [materials, setMaterials] = useState(DEFAULT_MATERIALS)
   const [materialError, setMaterialError] = useState('')
+  const [pricingError, setPricingError] = useState('')
   const [aantalStuks, setAantalStuks] = useState(1)
   const [view, setView] = useState('XY')
   const [isGridFullscreen, setIsGridFullscreen] = useState(false)
@@ -72,6 +89,7 @@ export default function App() {
   const [session, setSession] = useState(null)
   const [requestStatus, setRequestStatus] = useState('')
   const [siteContent, setSiteContent] = useState(DEFAULT_SITE_CONTENT)
+  const [pricing, setPricing] = useState(DEFAULT_PRICING)
   const isAdminPage = path === '/admin'
 
   const lines = useMemo(
@@ -90,26 +108,32 @@ export default function App() {
   const computed = useMemo(() => {
     const prijsPerMTR = material?.prijsPerMTR ?? 0
     const stuks = Math.max(1, parseInt(String(aantalStuks), 10) || 1)
-    return calculatePricePerStuk(totalLength, prijsPerMTR, stuks, lines)
-  }, [totalLength, material, aantalStuks, lines])
+    return calculatePricePerStuk(totalLength, prijsPerMTR, stuks, lines, pricing)
+  }, [totalLength, material, aantalStuks, lines, pricing])
 
   const displayPrijsPerStuk = computed.error ? 0 : computed.value
   const displayTotaal = displayPrijsPerStuk * Math.max(1, parseInt(String(aantalStuks), 10) || 1)
 
   useEffect(() => {
-    let cancelled = false
+    const unsubscribeMaterials = subscribeMaterials((result) => {
+      if (result.materials?.length) {
+        setMaterials(result.materials)
+      }
+      setMaterialError(
+        result.source === 'local' || result.source === 'error' ? result.message || '' : '',
+      )
+    }, { seedIfEmpty: true })
 
-    async function fetchMaterials() {
-      const result = await loadMaterials()
-      if (cancelled) return
+    const unsubscribePricing = subscribePricing((result) => {
+      setPricing(normalizePricing(result.pricing))
+      setPricingError(
+        result.source === 'local' || result.source === 'error' ? result.message || '' : '',
+      )
+    }, { seedIfEmpty: true })
 
-      setMaterials(result.materials)
-      setMaterialError(result.source === 'local' && result.message ? result.message : '')
-    }
-
-    fetchMaterials()
     return () => {
-      cancelled = true
+      unsubscribeMaterials()
+      unsubscribePricing()
     }
   }, [])
 
@@ -148,8 +172,27 @@ export default function App() {
 
   function updateCell(rowIndex, key, raw) {
     setRows((prev) =>
-      prev.map((row, i) => (i === rowIndex ? { ...row, [key]: raw } : row)),
+      prev.map((row, i) => {
+        if (i !== rowIndex) return row
+        return { ...row, [key]: normalizeCoordInput(row[key], raw) }
+      }),
     )
+  }
+
+  function handleCoordKeyDown(event, rowIndex, key) {
+    const current = rows[rowIndex][key]
+    if (!isCoordZero(current)) return
+
+    if (event.key === '-' || event.key === 'Minus') {
+      event.preventDefault()
+      updateCell(rowIndex, key, '-')
+      return
+    }
+
+    if (event.key.length === 1 && event.key >= '0' && event.key <= '9') {
+      event.preventDefault()
+      updateCell(rowIndex, key, event.key)
+    }
   }
 
   function addRow() {
@@ -274,6 +317,7 @@ export default function App() {
         aantalStuks: stuks,
         prijsPerStuk: displayPrijsPerStuk,
         totaalPrijs: displayPrijsPerStuk * stuks,
+        pricing,
       })
       setRequestStatus(
         created.requestNumber
@@ -373,6 +417,7 @@ export default function App() {
               ))}
             </select>
             {materialError ? <p className="status-text">{materialError}</p> : null}
+            {pricingError ? <p className="status-text">{pricingError}</p> : null}
           </div>
 
           <table className="coord-table">
@@ -395,6 +440,8 @@ export default function App() {
                       <input
                         type="number"
                         value={row[k]}
+                        onFocus={(e) => e.target.select()}
+                        onKeyDown={(e) => handleCoordKeyDown(e, i, k)}
                         onChange={(e) => updateCell(i, k, e.target.value)}
                       />
                     </td>
@@ -424,7 +471,9 @@ export default function App() {
           </div>
 
           <div>
-            <label htmlFor="totalLength">Gestrekte lengte (maximaal 6000 mm):</label>
+            <label htmlFor="totalLength">
+              Gestrekte lengte (maximaal {pricing.maxGestrekteLengteMm} mm):
+            </label>
             <br />
             <input
               id="totalLength"

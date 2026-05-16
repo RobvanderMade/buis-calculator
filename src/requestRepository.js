@@ -53,6 +53,7 @@ function normalizeRequest(value, id) {
     aantalStuks: Number(value.aantalStuks) || 1,
     prijsPerStuk: Number(value.prijsPerStuk) || 0,
     totaalPrijs: Number(value.totaalPrijs) || 0,
+    pricing: value.pricing || null,
   }
 }
 
