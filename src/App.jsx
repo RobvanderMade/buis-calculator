@@ -414,6 +414,11 @@ export default function App() {
           navigate('/')
           setViewingRequest(null)
         }}
+        showCalculatorInMenu={Boolean(session) && page !== 'calculator'}
+        onCalculatorClick={() => {
+          navigate('/calculator')
+          setViewingRequest(null)
+        }}
         onLogoutClick={handleLogout}
       />
       <div className="site-main">

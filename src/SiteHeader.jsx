@@ -35,8 +35,10 @@ export default function SiteHeader({
   userLabel = '',
   showBackButton = false,
   onAccountClick,
+  onCalculatorClick,
   onHomeClick,
   onLogoutClick,
+  showCalculatorInMenu = false,
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -51,6 +53,11 @@ export default function SiteHeader({
   function handleMenuAccountClick() {
     setMenuOpen(false)
     onAccountClick()
+  }
+
+  function handleMenuCalculatorClick() {
+    setMenuOpen(false)
+    onCalculatorClick?.()
   }
 
   function handleMenuLogoutClick() {
@@ -89,6 +96,11 @@ export default function SiteHeader({
             </button>
             {isLoggedIn && menuOpen ? (
               <div className="site-header__menu" onMouseLeave={() => setMenuOpen(false)}>
+                {showCalculatorInMenu ? (
+                  <button type="button" onClick={handleMenuCalculatorClick}>
+                    Calculator
+                  </button>
+                ) : null}
                 <button type="button" onClick={handleMenuAccountClick}>
                   {isAdmin ? 'Backoffice' : 'Account'}
                 </button>
