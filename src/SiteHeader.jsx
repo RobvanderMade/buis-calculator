@@ -1,35 +1,18 @@
-/** Eenvoudig buis-icoon als logo (vector, schaalbaar). Vervang door eigen bestand in /public indien gewenst. */
+import { useState } from 'react'
+
+const logoSrc = `${import.meta.env.BASE_URL}logo_header.png`
+
 function LogoMark() {
   return (
-    <svg
-      className="site-header__logo-svg"
-      viewBox="0 0 48 48"
-      width="44"
-      height="44"
-      aria-hidden
-    >
-      <circle cx="24" cy="24" r="22" fill="rgba(255,255,255,0.14)" />
-      <path
-        d="M10 32 V18 Q10 12 16 12 H30 Q36 12 36 18 V26"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.75"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M36 26 L36 34"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.75"
-        strokeLinecap="round"
-      />
-      <circle cx="36" cy="36" r="3.5" fill="currentColor" />
-    </svg>
+    <img
+      className="site-header__logo-img"
+      src={logoSrc}
+      alt="IAM BendR"
+      height={84}
+      decoding="async"
+    />
   )
 }
-
-import { useState } from 'react'
 
 function LoginIcon() {
   return (
@@ -80,10 +63,7 @@ export default function SiteHeader({
       <div className="site-header__inner">
         <div className="site-header__brand">
           <LogoMark />
-          <div className="site-header__titles">
-            <span className="site-header__name">BendR</span>
-            <span className="site-header__tagline">Buis buigen · online calculator</span>
-          </div>
+          <span className="site-header__tagline">Buis buigen · online calculator</span>
         </div>
         <div className="site-header__actions">
           {isLoggedIn && userLabel ? (

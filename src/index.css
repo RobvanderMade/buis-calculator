@@ -108,10 +108,16 @@ body.modal-open {
   gap: 14px;
 }
 
-.site-header__logo-svg {
+.site-header__logo-svg,
+.site-header__logo-img {
   flex-shrink: 0;
-  color: #fff;
+  display: block;
   filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.35));
+}
+
+.site-header__logo-img {
+  height: 56px;
+  width: auto;
 }
 
 .site-header__titles {

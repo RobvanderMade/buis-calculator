@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 48" role="img" aria-label="IAM BendR">
+  <defs>
+    <linearGradient id="bendr-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#42a5f5"/>
+      <stop offset="100%" stop-color="#1565c0"/>
+    </linearGradient>
+  </defs>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="24" cy="24" r="21" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.35)" stroke-width="1.5"/>
+    <path d="M11 31 V17 Q11 11 17 11 H29 Q35 11 35 17 V24" stroke="#fff" stroke-width="2.75"/>
+    <path d="M35 24 V32" stroke="#fff" stroke-width="2.75"/>
+    <circle cx="35" cy="35" r="3.25" fill="#fff"/>
+  </g>
+  <text x="54" y="22" fill="#fff" font-family="Segoe UI, system-ui, sans-serif" font-size="13" font-weight="600" letter-spacing="0.14em">IAM</text>
+  <text x="54" y="38" fill="url(#bendr-grad)" font-family="Segoe UI, system-ui, sans-serif" font-size="20" font-weight="700" letter-spacing="0.02em">BendR</text>
+</svg>
