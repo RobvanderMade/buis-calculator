@@ -39,6 +39,7 @@ export default {
   },
   calculator: {
     chooseMaterial: 'Choose material & radius:',
+    newCalculation: 'New calculation',
     rowHeader: 'Row',
     lengthMm: 'Length (mm)',
     addRow: 'Add a row',

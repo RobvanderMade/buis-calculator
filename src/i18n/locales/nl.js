@@ -39,6 +39,7 @@ export default {
   },
   calculator: {
     chooseMaterial: 'Kies materiaal & radius:',
+    newCalculation: 'Nieuwe berekening',
     rowHeader: 'Regel',
     lengthMm: 'Lengte (mm)',
     addRow: 'Voeg een regel toe',

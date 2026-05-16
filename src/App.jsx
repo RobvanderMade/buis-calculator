@@ -510,7 +510,7 @@ function AppContent({ path, setPath, page }) {
           </div>
           <div>
             <label htmlFor="materiaal">
-              <strong>Kies materiaal &amp; radius:</strong>
+              <strong>{t('calculator.chooseMaterial')}</strong>
             </label>
             <select
               id="materiaal"
@@ -542,7 +542,7 @@ function AppContent({ path, setPath, page }) {
             <tbody>
               {rows.map((row, i) => (
                 <tr key={i}>
-                  <td>Regel {i + 1}</td>
+                  <td>{t('calculator.rowN', { n: i + 1 })}</td>
                   {(['x', 'y', 'z']).map((k) => (
                     <td key={k}>
                       <input
@@ -589,7 +589,7 @@ function AppContent({ path, setPath, page }) {
                   </span>
                 ) : null}
                 <button type="button" className="primary" onClick={startNewCalculation}>
-                  {siteContent.calculator.newCalculation || 'Nieuwe berekening'}
+                  {siteContent.calculator.newCalculation || t('calculator.newCalculation')}
                 </button>
               </>
             ) : (
@@ -619,7 +619,7 @@ function AppContent({ path, setPath, page }) {
           </div>
 
           <div>
-            <label htmlFor="aantalStuks">Aantal stuks:</label>
+            <label htmlFor="aantalStuks">{t('calculator.quantityLabel')}</label>
             <br />
             <input
               id="aantalStuks"
