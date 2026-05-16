@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { formatSiteText } from './siteContent'
 
 const logoSrc = `${import.meta.env.BASE_URL}logo_header.png`
@@ -5,12 +6,18 @@ const logoSrc = `${import.meta.env.BASE_URL}logo_header.png`
 function homePhotoSrc(path) {
   if (!path) return ''
   if (/^https?:\/\//i.test(path)) return path
-  return `${import.meta.env.BASE_URL}${path.replace(/^\//, '')}`
+  const encoded = path
+    .replace(/^\//, '')
+    .split('/')
+    .map((segment) => encodeURIComponent(segment))
+    .join('/')
+  return `${import.meta.env.BASE_URL}${encoded}`
 }
 
 export default function HomePage({ content, userName = '', onOpenCalculator }) {
   const home = content?.home ?? {}
   const greeting = userName ? formatSiteText(home.greetingLoggedIn, { name: userName }) : ''
+  const [lightbox, setLightbox] = useState(null)
 
   const photos = [1, 2, 3].map((index) => ({
     src: homePhotoSrc(home[`photo${index}Src`]),
@@ -24,6 +31,21 @@ export default function HomePage({ content, userName = '', onOpenCalculator }) {
     }))
     .filter((step) => step.label)
 
+  useEffect(() => {
+    if (!lightbox) return undefined
+
+    function onKeyDown(event) {
+      if (event.key === 'Escape') setLightbox(null)
+    }
+
+    document.body.classList.add('modal-open')
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.body.classList.remove('modal-open')
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [lightbox])
+
   return (
     <div className="home-page">
       <img className="home-page__logo" src={logoSrc} alt="IAM BendR" decoding="async" />
@@ -35,10 +57,45 @@ export default function HomePage({ content, userName = '', onOpenCalculator }) {
       <div className="home-page__gallery" aria-label="Impressie">
         {photos.map((photo, index) => (
           <figure key={index} className="home-page__photo">
-            <img src={photo.src} alt={photo.alt} loading="lazy" decoding="async" />
+            <button
+              type="button"
+              className="home-page__photo-btn"
+              onClick={() => setLightbox(photo)}
+              aria-label={photo.alt ? `Vergroot: ${photo.alt}` : 'Foto vergroten'}
+            >
+              <div className="home-page__photo-frame">
+                <img src={photo.src} alt={photo.alt} loading="lazy" decoding="async" />
+              </div>
+              <span className="home-page__photo-zoom" aria-hidden="true">
+                Vergroten
+              </span>
+            </button>
           </figure>
         ))}
       </div>
+
+      {lightbox ? (
+        <div
+          className="home-lightbox"
+          role="dialog"
+          aria-modal="true"
+          aria-label={lightbox.alt || 'Vergrote foto'}
+          onClick={() => setLightbox(null)}
+        >
+          <button
+            type="button"
+            className="home-lightbox__close canvas-close-btn"
+            onClick={() => setLightbox(null)}
+            aria-label="Sluiten"
+          >
+            ×
+          </button>
+          <figure className="home-lightbox__figure" onClick={(event) => event.stopPropagation()}>
+            <img className="home-lightbox__img" src={lightbox.src} alt={lightbox.alt} />
+            {lightbox.alt ? <figcaption className="home-lightbox__caption">{lightbox.alt}</figcaption> : null}
+          </figure>
+        </div>
+      ) : null}
 
       {processSteps.length > 0 ? (
         <section className="home-process-banner" aria-labelledby="home-process-title">
@@ -73,4 +130,3 @@ export default function HomePage({ content, userName = '', onOpenCalculator }) {
     </div>
   )
 }
-
