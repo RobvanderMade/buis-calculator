@@ -4,8 +4,8 @@ import enGB from './locales/en-GB.js'
 
 const STORAGE_KEY = 'bendr-locale'
 export const LOCALES = [
-  { id: 'nl', labelKey: 'common.languageNl' },
-  { id: 'en-GB', labelKey: 'common.languageEn' },
+  { id: 'nl', labelKey: 'common.languageNl', shortLabel: 'NL' },
+  { id: 'en-GB', labelKey: 'common.languageEn', shortLabel: 'EN' },
 ]
 
 const catalogs = { nl, 'en-GB': enGB }

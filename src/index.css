@@ -520,30 +520,43 @@ body.modal-open {
 
 .lang-switcher {
   display: inline-flex;
+  align-items: center;
   border-radius: 999px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
+}
+
+.lang-switcher--header {
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  background: rgba(15, 23, 42, 0.5);
 }
 
 .lang-switcher__btn {
-  padding: 4px 10px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #cbd5e1;
+  min-width: 2.75rem;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #e2e8f0;
   background: transparent;
   border: none;
   cursor: pointer;
+  line-height: 1.2;
 }
 
-.lang-switcher__btn:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.08);
+.lang-switcher--header .lang-switcher__btn:hover {
+  color: #f8fafc;
+  background: rgba(56, 189, 248, 0.18);
 }
 
-.lang-switcher__btn--active {
+.lang-switcher--header .lang-switcher__btn--active {
   color: #0f172a;
-  background: #f8fafc;
+  background: #38bdf8;
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.5);
+}
+
+.lang-switcher__btn + .lang-switcher__btn {
+  border-left: 1px solid rgba(56, 189, 248, 0.25);
 }
 
 .site-header__user {
@@ -1575,6 +1588,12 @@ table.admin-table td:first-child {
 
   .site-header__user {
     display: none;
+  }
+
+  .lang-switcher__btn {
+    min-width: 2.5rem;
+    padding: 6px 10px;
+    font-size: 0.75rem;
   }
 
   .customer-profile-fields {
