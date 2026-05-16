@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { formatSiteText } from './siteContent'
+import { useI18n } from './i18n/I18nContext.jsx'
 
 const logoSrc = `${import.meta.env.BASE_URL}logo_header.png`
 
@@ -15,6 +16,7 @@ function homePhotoSrc(path) {
 }
 
 export default function HomePage({ content, userName = '', onOpenCalculator }) {
+  const { t } = useI18n()
   const home = content?.home ?? {}
   const greeting = userName ? formatSiteText(home.greetingLoggedIn, { name: userName }) : ''
   const [lightbox, setLightbox] = useState(null)
@@ -61,13 +63,15 @@ export default function HomePage({ content, userName = '', onOpenCalculator }) {
               type="button"
               className="home-page__photo-btn"
               onClick={() => setLightbox(photo)}
-              aria-label={photo.alt ? `Vergroot: ${photo.alt}` : 'Foto vergroten'}
+              aria-label={
+                photo.alt ? `${t('common.enlarge')}: ${photo.alt}` : t('common.enlarge')
+              }
             >
               <div className="home-page__photo-frame">
                 <img src={photo.src} alt={photo.alt} loading="lazy" decoding="async" />
               </div>
               <span className="home-page__photo-zoom" aria-hidden="true">
-                Vergroten
+                {t('common.enlarge')}
               </span>
             </button>
           </figure>
@@ -79,14 +83,14 @@ export default function HomePage({ content, userName = '', onOpenCalculator }) {
           className="home-lightbox"
           role="dialog"
           aria-modal="true"
-          aria-label={lightbox.alt || 'Vergrote foto'}
+          aria-label={lightbox.alt || t('home.enlargePhoto')}
           onClick={() => setLightbox(null)}
         >
           <button
             type="button"
             className="home-lightbox__close canvas-close-btn"
             onClick={() => setLightbox(null)}
-            aria-label="Sluiten"
+            aria-label={t('common.close')}
           >
             ×
           </button>

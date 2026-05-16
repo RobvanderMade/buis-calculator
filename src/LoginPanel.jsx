@@ -12,15 +12,18 @@ import {
   saveCustomerProfile,
   validateCustomerProfile,
 } from './customerRepository'
+import { useI18n } from './i18n/I18nContext.jsx'
 
 export default function LoginPanel({
   fixedRole = 'customer',
   embedded = false,
   initialMode = 'login',
-  title = 'Inloggen',
+  title,
   onLogin,
   onClose,
 }) {
+  const { t } = useI18n()
+  const isCustomerUi = fixedRole === 'customer'
   const [role, setRole] = useState(fixedRole)
   const [mode, setMode] = useState(initialMode)
   const [email, setEmail] = useState('')
@@ -28,6 +31,8 @@ export default function LoginPanel({
   const [showPassword, setShowPassword] = useState(false)
   const [profile, setProfile] = useState(emptyCustomerProfile)
   const [message, setMessage] = useState('')
+
+  const panelTitle = title ?? (fixedRole === 'admin' ? t('login.adminTitle') : t('login.title'))
 
   useEffect(() => {
     if (embedded) return undefined
@@ -58,24 +63,30 @@ export default function LoginPanel({
     setMessage('')
   }
 
+  function actionLabel() {
+    if (mode === 'register') return t('login.actionRegister')
+    if (mode === 'reset') return t('login.actionReset')
+    return t('login.actionLogin')
+  }
+
   async function handleSubmit(event) {
     event.preventDefault()
     setMessage('')
 
     if (!auth) {
-      setMessage('Firebase is nog niet geconfigureerd.')
+      setMessage(t('login.firebaseNotConfigured'))
       return
     }
 
     try {
       if (mode === 'reset') {
         await sendPasswordResetEmail(auth, email)
-        setMessage('Wachtwoord reset e-mail is verzonden.')
+        setMessage(t('login.resetSent'))
         return
       }
 
       if (mode === 'register' && role === 'customer') {
-        const profileError = validateCustomerProfile(profile)
+        const profileError = validateCustomerProfile(profile, isCustomerUi ? t : undefined)
         if (profileError) {
           setMessage(profileError)
           return
@@ -99,224 +110,222 @@ export default function LoginPanel({
       await onLogin({ user: result.user, role, customerProfile })
       setPassword('')
     } catch (error) {
-      const action =
-        mode === 'register' ? 'Account aanmaken' : mode === 'reset' ? 'Reset' : 'Inloggen'
-      setMessage(`${action} mislukt: ${formatAuthError(error)}`)
+      setMessage(t('login.failed', { action: actionLabel(), error: formatAuthError(error, t) }))
     }
   }
 
   const loginCard = (
-      <div className="login-card">
-        <div className="backoffice-header">
-          <h2>{title}</h2>
-          {!embedded ? (
-            <button type="button" onClick={onClose} aria-label="Login sluiten">
-              X
-            </button>
-          ) : null}
-        </div>
+    <div className="login-card">
+      <div className="backoffice-header">
+        <h2>{panelTitle}</h2>
+        {!embedded ? (
+          <button type="button" onClick={onClose} aria-label={t('login.close')}>
+            X
+          </button>
+        ) : null}
+      </div>
 
-        {!fixedRole ? (
-          <div className="login-role-switch row-btns">
+      {!fixedRole ? (
+        <div className="login-role-switch row-btns">
           <button
             type="button"
             className={role === 'customer' ? 'view-active' : ''}
             onClick={() => selectRole('customer')}
           >
-            My BendR
+            {t('login.title')}
           </button>
           <button
             type="button"
             className={role === 'admin' ? 'view-active' : ''}
             onClick={() => selectRole('admin')}
           >
-            Admin
+            {t('login.admin')}
           </button>
         </div>
-        ) : null}
+      ) : null}
 
-        {role === 'customer' ? (
-          <div className="login-mode-switch row-btns">
-            <button
-              type="button"
-              className={mode === 'login' ? 'view-active' : ''}
-              onClick={() => setMode('login')}
-            >
-              Inloggen
-            </button>
-            <button
-              type="button"
-              className={mode === 'register' ? 'view-active' : ''}
-              onClick={() => setMode('register')}
-            >
-              Nieuw account
-            </button>
-            <button
-              type="button"
-              className={mode === 'reset' ? 'view-active' : ''}
-              onClick={() => setMode('reset')}
-            >
-              Wachtwoord vergeten
-            </button>
+      {role === 'customer' ? (
+        <div className="login-mode-switch row-btns">
+          <button
+            type="button"
+            className={mode === 'login' ? 'view-active' : ''}
+            onClick={() => setMode('login')}
+          >
+            {t('login.loginTab')}
+          </button>
+          <button
+            type="button"
+            className={mode === 'register' ? 'view-active' : ''}
+            onClick={() => setMode('register')}
+          >
+            {t('login.registerTab')}
+          </button>
+          <button
+            type="button"
+            className={mode === 'reset' ? 'view-active' : ''}
+            onClick={() => setMode('reset')}
+          >
+            {t('login.resetTab')}
+          </button>
+        </div>
+      ) : null}
+
+      <form className="stack" onSubmit={handleSubmit}>
+        <label>
+          {t('login.emailLabel')}
+          <input
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            required
+            autoComplete="email"
+          />
+        </label>
+        {mode !== 'reset' ? (
+          <label>
+            {t('login.passwordLabel')}
+            <span className="password-field">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+                minLength={mode === 'register' ? 6 : undefined}
+                autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword((prev) => !prev)}
+                aria-label={showPassword ? t('login.hidePassword') : t('login.showPassword')}
+                title={showPassword ? t('login.hidePassword') : t('login.showPassword')}
+              >
+                {showPassword ? (
+                  <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                    <path
+                      d="M3 3l18 18M10.6 10.6a2 2 0 002.8 2.8M9.9 5.1A10 10 0 0112 5c5 0 9 4 10 7-.4 1-1.1 2.2-2.1 3.3M6.1 6.1C4 7.7 2.6 9.8 2 12c1 3 5 7 10 7 1.6 0 3.1-.3 4.4-.9"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.7"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                    <path
+                      d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.7"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="3"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.7"
+                    />
+                  </svg>
+                )}
+              </button>
+            </span>
+          </label>
+        ) : null}
+        {role === 'customer' && mode === 'register' ? (
+          <div className="customer-profile-fields">
+            <label>
+              {t('login.companyName')} <span className="hint">{t('common.optional')}</span>
+              <input
+                type="text"
+                value={profile.company}
+                onChange={(event) => setProfile((prev) => ({ ...prev, company: event.target.value }))}
+                autoComplete="organization"
+              />
+            </label>
+            <label>
+              {t('common.name')}
+              <input
+                type="text"
+                value={profile.name}
+                onChange={(event) => setProfile((prev) => ({ ...prev, name: event.target.value }))}
+                required
+                autoComplete="name"
+              />
+            </label>
+            <label>
+              {t('login.street')}
+              <input
+                type="text"
+                value={profile.street}
+                onChange={(event) => setProfile((prev) => ({ ...prev, street: event.target.value }))}
+                required
+                autoComplete="street-address"
+              />
+            </label>
+            <label>
+              {t('login.postalCode')}
+              <input
+                type="text"
+                value={profile.postalCode}
+                onChange={(event) => setProfile((prev) => ({ ...prev, postalCode: event.target.value }))}
+                required
+                autoComplete="postal-code"
+              />
+            </label>
+            <label>
+              {t('login.city')}
+              <input
+                type="text"
+                value={profile.city}
+                onChange={(event) => setProfile((prev) => ({ ...prev, city: event.target.value }))}
+                required
+                autoComplete="address-level2"
+              />
+            </label>
+            <label>
+              {t('login.country')}
+              <input
+                type="text"
+                value={profile.country}
+                onChange={(event) => setProfile((prev) => ({ ...prev, country: event.target.value }))}
+                required
+                autoComplete="country-name"
+              />
+            </label>
+            <label>
+              {t('common.phone')}
+              <input
+                type="tel"
+                value={profile.phone}
+                onChange={(event) => setProfile((prev) => ({ ...prev, phone: event.target.value }))}
+                required
+                autoComplete="tel"
+              />
+            </label>
           </div>
         ) : null}
-
-        <form className="stack" onSubmit={handleSubmit}>
-          <label>
-            E-mail
-            <input
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              required
-              autoComplete="email"
-            />
-          </label>
-          {mode !== 'reset' ? (
-            <label>
-              Wachtwoord
-              <span className="password-field">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  required
-                  minLength={mode === 'register' ? 6 : undefined}
-                  autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
-                />
-                <button
-                  type="button"
-                  className="password-toggle"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  aria-label={showPassword ? 'Wachtwoord verbergen' : 'Wachtwoord tonen'}
-                  title={showPassword ? 'Wachtwoord verbergen' : 'Wachtwoord tonen'}
-                >
-                  {showPassword ? (
-                    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-                      <path
-                        d="M3 3l18 18M10.6 10.6a2 2 0 002.8 2.8M9.9 5.1A10 10 0 0112 5c5 0 9 4 10 7-.4 1-1.1 2.2-2.1 3.3M6.1 6.1C4 7.7 2.6 9.8 2 12c1 3 5 7 10 7 1.6 0 3.1-.3 4.4-.9"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.7"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  ) : (
-                    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-                      <path
-                        d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.7"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <circle
-                        cx="12"
-                        cy="12"
-                        r="3"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.7"
-                      />
-                    </svg>
-                  )}
-                </button>
-              </span>
-            </label>
-          ) : null}
-          {role === 'customer' && mode === 'register' ? (
-            <div className="customer-profile-fields">
-              <label>
-                Bedrijfsnaam <span className="hint">(optioneel)</span>
-                <input
-                  type="text"
-                  value={profile.company}
-                  onChange={(event) => setProfile((prev) => ({ ...prev, company: event.target.value }))}
-                  autoComplete="organization"
-                />
-              </label>
-              <label>
-                Naam
-                <input
-                  type="text"
-                  value={profile.name}
-                  onChange={(event) => setProfile((prev) => ({ ...prev, name: event.target.value }))}
-                  required
-                  autoComplete="name"
-                />
-              </label>
-              <label>
-                Straat en huisnummer
-                <input
-                  type="text"
-                  value={profile.street}
-                  onChange={(event) => setProfile((prev) => ({ ...prev, street: event.target.value }))}
-                  required
-                  autoComplete="street-address"
-                />
-              </label>
-              <label>
-                Postcode
-                <input
-                  type="text"
-                  value={profile.postalCode}
-                  onChange={(event) => setProfile((prev) => ({ ...prev, postalCode: event.target.value }))}
-                  required
-                  autoComplete="postal-code"
-                />
-              </label>
-              <label>
-                Plaats
-                <input
-                  type="text"
-                  value={profile.city}
-                  onChange={(event) => setProfile((prev) => ({ ...prev, city: event.target.value }))}
-                  required
-                  autoComplete="address-level2"
-                />
-              </label>
-              <label>
-                Land
-                <input
-                  type="text"
-                  value={profile.country}
-                  onChange={(event) => setProfile((prev) => ({ ...prev, country: event.target.value }))}
-                  required
-                  autoComplete="country-name"
-                />
-              </label>
-              <label>
-                Telefoon
-                <input
-                  type="tel"
-                  value={profile.phone}
-                  onChange={(event) => setProfile((prev) => ({ ...prev, phone: event.target.value }))}
-                  required
-                  autoComplete="tel"
-                />
-              </label>
-            </div>
-          ) : null}
-          <button type="submit" className="primary">
-            {mode === 'register'
-              ? 'Account aanmaken'
-              : mode === 'reset'
-                ? 'Reset e-mail versturen'
-                : role === 'admin'
-                  ? 'Inloggen als admin'
-                  : 'Inloggen'}
-          </button>
-        </form>
-        {message ? <p className="status-text">{message}</p> : null}
-      </div>
+        <button type="submit" className="primary">
+          {mode === 'register'
+            ? t('login.submitRegister')
+            : mode === 'reset'
+              ? t('login.submitReset')
+              : role === 'admin'
+                ? t('login.submitLogin')
+                : t('login.submitLogin')}
+        </button>
+      </form>
+      {message ? <p className="status-text">{message}</p> : null}
+    </div>
   )
 
   if (embedded) return loginCard
 
   return (
-    <div className="login-overlay" role="dialog" aria-modal="true" aria-label="Inloggen">
+    <div className="login-overlay" role="dialog" aria-modal="true" aria-label={t('login.title')}>
       {loginCard}
     </div>
   )

@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import LanguageSwitcher from './components/LanguageSwitcher.jsx'
+import { useI18n } from './i18n/I18nContext.jsx'
 
 const logoSrc = `${import.meta.env.BASE_URL}logo_header.png`
 
@@ -29,7 +31,7 @@ function LoginIcon() {
 }
 
 export default function SiteHeader({
-  accountLabel = 'Inloggen',
+  accountLabel,
   isLoggedIn = false,
   isAdmin = false,
   userLabel = '',
@@ -40,7 +42,9 @@ export default function SiteHeader({
   onLogoutClick,
   showCalculatorInMenu = false,
 }) {
+  const { t } = useI18n()
   const [menuOpen, setMenuOpen] = useState(false)
+  const resolvedAccountLabel = accountLabel ?? t('header.accountMyBendR')
 
   function handleAccountButtonClick() {
     if (isLoggedIn) {
@@ -72,40 +76,41 @@ export default function SiteHeader({
           type="button"
           className="site-header__brand site-header__brand-btn"
           onClick={onHomeClick}
-          aria-label="Naar startpagina"
+          aria-label={t('header.goHome')}
         >
           <LogoMark />
-          <span className="site-header__tagline">Buis buigen · online calculator</span>
+          <span className="site-header__tagline">{t('header.tagline')}</span>
         </button>
         <div className="site-header__actions">
+          <LanguageSwitcher />
           {isLoggedIn && userLabel ? (
             <span className="site-header__user" title={userLabel}>
-              {isAdmin ? 'Admin: ' : ''}
+              {isAdmin ? t('header.adminPrefix') : ''}
               {userLabel}
             </span>
           ) : null}
           {showBackButton ? (
             <button type="button" className="site-header__login" onClick={onHomeClick}>
-              <span>Terug</span>
+              <span>{t('common.back')}</span>
             </button>
           ) : null}
           <div className="site-header__account">
             <button type="button" className="site-header__login" onClick={handleAccountButtonClick}>
               <LoginIcon />
-              <span>{accountLabel}</span>
+              <span>{resolvedAccountLabel}</span>
             </button>
             {isLoggedIn && menuOpen ? (
               <div className="site-header__menu" onMouseLeave={() => setMenuOpen(false)}>
                 {showCalculatorInMenu ? (
                   <button type="button" onClick={handleMenuCalculatorClick}>
-                    Calculator
+                    {t('header.calculator')}
                   </button>
                 ) : null}
                 <button type="button" onClick={handleMenuAccountClick}>
-                  {isAdmin ? 'Backoffice' : 'Account'}
+                  {isAdmin ? 'Backoffice' : t('header.account')}
                 </button>
                 <button type="button" onClick={handleMenuLogoutClick}>
-                  Uitloggen
+                  {t('common.logout')}
                 </button>
               </div>
             ) : null}

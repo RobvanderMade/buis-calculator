@@ -518,6 +518,34 @@ body.modal-open {
   gap: 8px;
 }
 
+.lang-switcher {
+  display: inline-flex;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.lang-switcher__btn {
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #cbd5e1;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.lang-switcher__btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.lang-switcher__btn--active {
+  color: #0f172a;
+  background: #f8fafc;
+}
+
 .site-header__user {
   max-width: 220px;
   padding: 4px 10px;

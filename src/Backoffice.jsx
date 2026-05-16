@@ -32,7 +32,14 @@ import {
 import { DEFAULT_PRICING } from './pricing'
 import { savePricing, subscribePricing } from './pricingRepository'
 import { DEFAULT_SITE_CONTENT } from './siteContent'
-import { saveSiteContent, subscribeSiteContent } from './siteContentRepository'
+import {
+  SITE_CONTENT_LOCALE_EN,
+  SITE_CONTENT_LOCALE_NL,
+  createDefaultContentBundle,
+  saveSiteContent,
+  subscribeSiteContent,
+} from './siteContentRepository'
+import { useI18n } from './i18n/I18nContext.jsx'
 
 const emptyMaterial = {
   id: '',
@@ -79,7 +86,8 @@ export default function Backoffice({
   const [materialsHint, setMaterialsHint] = useState('')
   const [requests, setRequests] = useState([])
   const [editing, setEditing] = useState(emptyMaterial)
-  const [siteContent, setSiteContent] = useState(DEFAULT_SITE_CONTENT)
+  const [siteContentBundle, setSiteContentBundle] = useState(createDefaultContentBundle)
+  const [siteContentEditLocale, setSiteContentEditLocale] = useState(SITE_CONTENT_LOCALE_NL)
   const [siteContentSource, setSiteContentSource] = useState('')
   const [pricing, setPricing] = useState(DEFAULT_PRICING)
   const [pricingSource, setPricingSource] = useState('')
@@ -91,6 +99,7 @@ export default function Backoffice({
   const [expandedCustomerUid, setExpandedCustomerUid] = useState(null)
 
   const isAdmin = role === 'admin'
+  const { t } = useI18n()
 
   useEffect(() => {
     if (!customerProfile) return
@@ -105,17 +114,17 @@ export default function Backoffice({
   async function handleSaveAddress(event) {
     event.preventDefault()
     if (!customerProfile) {
-      setMessage('Geen accountgegevens om bij te werken.')
+      setMessage(t('account.noProfileToUpdate'))
       return
     }
 
     const merged = normalizeCustomerProfile({ ...customerProfile, ...addressDraft })
-    const addressError = validateCustomerAddress(merged)
+    const addressError = validateCustomerAddress(merged, t)
     if (addressError) {
       setMessage(addressError)
       return
     }
-    const profileError = validateCustomerProfile(merged)
+    const profileError = validateCustomerProfile(merged, t)
     if (profileError) {
       setMessage(profileError)
       return
@@ -126,9 +135,9 @@ export default function Backoffice({
     try {
       await saveCustomerProfile(user.uid, merged)
       onCustomerProfileUpdate?.(merged)
-      setMessage('Adresgegevens opgeslagen.')
+      setMessage(t('account.addressSaved'))
     } catch (error) {
-      setMessage(`Adres opslaan mislukt: ${error.message}`)
+      setMessage(t('account.addressSaveFailed', { error: error.message }))
     } finally {
       setSavingAddress(false)
     }
@@ -141,9 +150,11 @@ export default function Backoffice({
   }, [])
 
   const applySiteContentResult = useCallback((result) => {
-    if (result?.content) setSiteContent(result.content)
+    if (result?.content) setSiteContentBundle(result.content)
     setSiteContentSource(result?.source || '')
   }, [])
+
+  const siteContent = siteContentBundle[siteContentEditLocale] ?? siteContentBundle[SITE_CONTENT_LOCALE_NL]
 
   const applyPricingResult = useCallback((result) => {
     if (result?.pricing) setPricing(result.pricing)
@@ -151,9 +162,12 @@ export default function Backoffice({
   }, [])
 
   function updateSiteContentField(section, key, value) {
-    setSiteContent((prev) => ({
+    setSiteContentBundle((prev) => ({
       ...prev,
-      [section]: { ...prev[section], [key]: value },
+      [siteContentEditLocale]: {
+        ...prev[siteContentEditLocale],
+        [section]: { ...prev[siteContentEditLocale][section], [key]: value },
+      },
     }))
   }
 
@@ -376,9 +390,9 @@ export default function Backoffice({
       return `${count} ${count === 1 ? 'order' : 'orders'} ${scope}`
     }
     return `${visibleRequests.length} ${
-      visibleRequests.length === 1 ? 'aanvraag' : 'aanvragen'
+      visibleRequests.length === 1 ? t('account.requestsOne') : t('account.requestsMany')
     }`
-  }, [isAdmin, requestListFilter, visibleRequests.length])
+  }, [isAdmin, requestListFilter, visibleRequests.length, t])
 
   const requestsByCustomerUid = useMemo(() => {
     const map = new Map()
@@ -448,9 +462,11 @@ export default function Backoffice({
     <div className="backoffice stack">
       <div className="backoffice-header">
         <div>
-          <h2>{isAdmin ? 'Backoffice' : 'My BendR account'}</h2>
+          <h2>{isAdmin ? 'Backoffice' : t('account.title')}</h2>
           <p className="status-text">
-            Ingelogd als {user.email} ({isAdmin ? 'admin' : 'My BendR'})
+            {isAdmin
+              ? `Ingelogd als ${user.email} (admin)`
+              : t('account.loggedInAs', { email: user.email, role: t('account.roleCustomer') })}
           </p>
         </div>
       </div>
@@ -501,7 +517,7 @@ export default function Backoffice({
           </button>
         ) : null}
         <button type="button" onClick={refreshBackofficeData}>
-          Verversen
+          {isAdmin ? 'Verversen' : t('common.refresh')}
         </button>
       </div>
 
@@ -509,37 +525,37 @@ export default function Backoffice({
 
       {!isAdmin ? (
         <section className="panel stack account-section">
-          <h3>Accountgegevens</h3>
+          <h3>{t('account.detailsTitle')}</h3>
           <div className="data-card account-details">
             <p>
-              <strong>E-mail:</strong> {user.email}
+              <strong>{t('common.email')}:</strong> {user.email}
             </p>
             {customerProfile ? (
               <>
                 {customerProfile.company ? (
                   <p>
-                    <strong>Bedrijf:</strong> {customerProfile.company}
+                    <strong>{t('common.company')}:</strong> {customerProfile.company}
                   </p>
                 ) : null}
                 <p>
-                  <strong>Naam:</strong> {customerProfile.name}
+                  <strong>{t('common.name')}:</strong> {customerProfile.name}
                 </p>
                 <p>
-                  <strong>Telefoon:</strong> {customerProfile.phone}
+                  <strong>{t('common.phone')}:</strong> {customerProfile.phone}
                 </p>
               </>
             ) : (
-              <p className="hint">Geen accountgegevens gevonden.</p>
+              <p className="hint">{t('account.noProfile')}</p>
             )}
           </div>
 
           {customerProfile ? (
             <form className="account-address-form stack" onSubmit={handleSaveAddress}>
-              <h4>Adresgegevens</h4>
-              <p className="hint">Pas je adres aan; wijzigingen gelden voor nieuwe aanvragen.</p>
+              <h4>{t('account.addressTitle')}</h4>
+              <p className="hint">{t('account.addressHint')}</p>
               <div className="customer-profile-fields account-address-fields">
                 <label>
-                  Straat en huisnummer
+                  {t('login.street')}
                   <input
                     type="text"
                     value={addressDraft.street}
@@ -551,7 +567,7 @@ export default function Backoffice({
                   />
                 </label>
                 <label>
-                  Postcode
+                  {t('login.postalCode')}
                   <input
                     type="text"
                     value={addressDraft.postalCode}
@@ -563,7 +579,7 @@ export default function Backoffice({
                   />
                 </label>
                 <label>
-                  Plaats
+                  {t('login.city')}
                   <input
                     type="text"
                     value={addressDraft.city}
@@ -575,7 +591,7 @@ export default function Backoffice({
                   />
                 </label>
                 <label>
-                  Land
+                  {t('login.country')}
                   <input
                     type="text"
                     value={addressDraft.country}
@@ -589,7 +605,7 @@ export default function Backoffice({
               </div>
               <div className="row-btns">
                 <button type="submit" className="primary" disabled={savingAddress}>
-                  {savingAddress ? 'Opslaan…' : 'Adres opslaan'}
+                  {savingAddress ? t('common.saving') : t('account.saveAddress')}
                 </button>
               </div>
             </form>
@@ -622,7 +638,7 @@ export default function Backoffice({
             <p className="hint">
               {isAdmin && requestListFilter === 'history'
                 ? 'Geen orders in de historie.'
-                : 'Nog geen aanvragen.'}
+                : t('requests.noneYet')}
             </p>
           ) : null}
           <div className="card-list">
@@ -641,9 +657,11 @@ export default function Backoffice({
                     : undefined
                 }
                 aria-label={
-                  onOpenRequestInCalculator
-                    ? 'Aanvraag openen in calculator'
-                    : undefined
+                  onOpenRequestInCalculator && !isAdmin
+                    ? t('requests.openHint')
+                    : onOpenRequestInCalculator
+                      ? 'Aanvraag openen in calculator'
+                      : undefined
                 }
               >
                 <div className="data-card__head">
@@ -690,8 +708,17 @@ export default function Backoffice({
                   </p>
                 ) : null}
                 <p>
-                  Lengte: {request.totalLength.toFixed(2)} mm | Aantal: {request.aantalStuks} | Totaal:{' '}
-                  {request.totaalPrijs.toFixed(2)} EUR
+                  {isAdmin ? (
+                    <>
+                      Lengte: {request.totalLength.toFixed(2)} mm | Aantal: {request.aantalStuks} | Totaal:{' '}
+                      {request.totaalPrijs.toFixed(2)} EUR
+                    </>
+                  ) : (
+                    <>
+                      {t('requests.length')}: {request.totalLength.toFixed(2)} mm | {t('requests.quantity')}:{' '}
+                      {request.aantalStuks} | {t('requests.total')}: {request.totaalPrijs.toFixed(2)} EUR
+                    </>
+                  )}
                 </p>
                 <p className="hint">
                   Regels: {request.lines.map((line) => `X${line.x} Y${line.y} Z${line.z}`).join(' | ')}
@@ -754,12 +781,14 @@ export default function Backoffice({
                     <span
                       className={`request-status request-status--${normalizeRequestStatus(request.status)}`}
                     >
-                      {formatRequestStatus(request.status)}
+                      {formatRequestStatus(request.status, isAdmin ? undefined : t)}
                     </span>
                   </p>
                 )}
                 {onOpenRequestInCalculator ? (
-                  <p className="data-card__open-hint">Klik om te openen in de calculator</p>
+                  <p className="data-card__open-hint">
+                    {isAdmin ? 'Klik om te openen in de calculator' : t('requests.openHint')}
+                  </p>
                 ) : null}
               </article>
             ))}
@@ -1109,9 +1138,25 @@ export default function Backoffice({
           <h3>Teksten &amp; footer</h3>
           <p className="hint">
             {siteContentSource === 'firebase' || siteContentSource === 'firebase-seeded'
-              ? 'Teksten uit Firebase (zichtbaar op calculator en in de footer).'
+              ? 'Teksten uit Firebase (NL en English UK). Klanten zien de taal die ze kiezen in de header.'
               : 'Teksten laden…'}
           </p>
+          <div className="row-btns site-content-locale-switch" role="group" aria-label="Taal voor teksten">
+            <button
+              type="button"
+              className={siteContentEditLocale === SITE_CONTENT_LOCALE_NL ? 'view-active' : ''}
+              onClick={() => setSiteContentEditLocale(SITE_CONTENT_LOCALE_NL)}
+            >
+              Nederlands
+            </button>
+            <button
+              type="button"
+              className={siteContentEditLocale === SITE_CONTENT_LOCALE_EN ? 'view-active' : ''}
+              onClick={() => setSiteContentEditLocale(SITE_CONTENT_LOCALE_EN)}
+            >
+              English (UK)
+            </button>
+          </div>
           <form className="site-content-form" onSubmit={handleSaveSiteContent}>
             <fieldset className="site-content-form__group">
               <legend>Welkomsttekst calculator</legend>

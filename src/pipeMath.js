@@ -39,10 +39,11 @@ export function rowSegmentLengths(lines) {
   return lines.map((line) => segmentLength(line.x, line.y, line.z))
 }
 
-export function rowSegmentStatuses(lines, material) {
+export function rowSegmentStatuses(lines, material, messages) {
+  const msg = messages || {}
   const fallback = lines.map(() => ({
     ok: false,
-    message: 'Geen materiaal geselecteerd.',
+    message: msg.noMaterial || 'Geen materiaal geselecteerd.',
   }))
   if (!material) return fallback
 
@@ -61,28 +62,36 @@ export function rowSegmentStatuses(lines, material) {
   return lines.map((line, rowIndex) => {
     const length = segmentLength(line.x, line.y, line.z)
     if (line.x === 0 && line.y === 0 && line.z === 0) {
-      return { ok: false, message: 'Geen lijn ingevuld.' }
+      return { ok: false, message: msg.noLine || 'Geen lijn ingevuld.' }
     }
 
     if (rowIndex === firstRowIndex && length <= klemLengte + radius) {
+      const min = klemLengte + radius
       return {
         ok: false,
-        message: `Eerste lijn moet langer zijn dan ${klemLengte + radius} mm.`,
+        message:
+          typeof msg.firstLineMin === 'function'
+            ? msg.firstLineMin(min)
+            : `Eerste lijn moet langer zijn dan ${min} mm.`,
       }
     }
 
     if (rowIndex === lastRowIndex && length < 280) {
-      return { ok: false, message: 'Laatste lijn moet minimaal 280 mm zijn.' }
+      return { ok: false, message: msg.lastLineMin || 'Laatste lijn moet minimaal 280 mm zijn.' }
     }
 
     if (rowIndex !== firstRowIndex && rowIndex !== lastRowIndex && length <= klemLengte + 2 * radius) {
+      const min = klemLengte + 2 * radius
       return {
         ok: false,
-        message: `Tussenlijn moet langer zijn dan ${klemLengte + 2 * radius} mm.`,
+        message:
+          typeof msg.middleLineMin === 'function'
+            ? msg.middleLineMin(min)
+            : `Tussenlijn moet langer zijn dan ${min} mm.`,
       }
     }
 
-    return { ok: true, message: 'Regellengte akkoord.' }
+    return { ok: true, message: msg.lineOk || 'Regellengte akkoord.' }
   })
 }
 
@@ -90,9 +99,10 @@ export function rowSegmentStatuses(lines, material) {
  * Validatie volgens oorspronkelijke regels (alleen niet-nul segmenten).
  * @returns {{ ok: true, message: string } | { ok: false, message: string }}
  */
-export function validateLines(lines, material) {
+export function validateLines(lines, material, messages) {
+  const msg = messages || {}
   if (!material) {
-    return { ok: false, message: 'Geen materiaal geselecteerd.' }
+    return { ok: false, message: msg.noMaterial || 'Geen materiaal geselecteerd.' }
   }
   const { klemLengte, radius } = material
   const nonZero = []
@@ -104,43 +114,62 @@ export function validateLines(lines, material) {
     }
   }
   if (nonZero.length === 0) {
-    return { ok: false, message: 'Geen lijnen ingevuld om te controleren.' }
+    return { ok: false, message: msg.noLinesToCheck || 'Geen lijnen ingevuld om te controleren.' }
   }
   const first = nonZero[0]
   if (first.length <= klemLengte + radius) {
+    const min = klemLengte + radius
     return {
       ok: false,
-      message: `De eerste lijn is te kort. Deze moet langer zijn dan ${klemLengte + radius} mm.`,
+      message:
+        typeof msg.firstLineTooShort === 'function'
+          ? msg.firstLineTooShort(min)
+          : `De eerste lijn is te kort. Deze moet langer zijn dan ${min} mm.`,
     }
   }
   const last = nonZero[nonZero.length - 1]
   if (last.length < 280) {
     return {
       ok: false,
-      message: 'De laatste lijn is te kort. Deze moet minimaal 280 mm zijn.',
+      message: msg.lastLineTooShort || 'De laatste lijn is te kort. Deze moet minimaal 280 mm zijn.',
     }
   }
   for (let j = 1; j < nonZero.length - 1; j++) {
     const line = nonZero[j]
     if (line.length <= klemLengte + 2 * radius) {
+      const min = klemLengte + 2 * radius
       return {
         ok: false,
-        message: `Lijn ${line.rowIndex + 1} is te kort. Deze moet langer zijn dan ${klemLengte + 2 * radius} mm.`,
+        message:
+          typeof msg.lineNTooShort === 'function'
+            ? msg.lineNTooShort(line.rowIndex + 1, min)
+            : `Lijn ${line.rowIndex + 1} is te kort. Deze moet langer zijn dan ${min} mm.`,
       }
     }
   }
-  return { ok: true, message: 'Alle lijnen zijn correct! Je kunt doorgaan.' }
+  return { ok: true, message: msg.allOk || 'Alle lijnen zijn correct! Je kunt doorgaan.' }
 }
 
 /**
  * Prijs per stuk (zelfde formule als origineel, met guards voor randgevallen).
  * @param {typeof DEFAULT_PRICING} [pricing]
  */
-export function calculatePricePerStuk(totalLength, prijsPerMTR, aantalStuks, lines, pricing = DEFAULT_PRICING) {
+export function calculatePricePerStuk(
+  totalLength,
+  prijsPerMTR,
+  aantalStuks,
+  lines,
+  pricing = DEFAULT_PRICING,
+  messages,
+) {
   const maxLengte = pricing.maxGestrekteLengteMm ?? DEFAULT_PRICING.maxGestrekteLengteMm
   if (totalLength >= maxLengte) {
+    const error =
+      typeof messages?.totalLengthTooLong === 'function'
+        ? messages.totalLengthTooLong(maxLengte)
+        : `De totale lengte is te lang. Deze moet korter zijn dan ${maxLengte} mm.`
     return {
-      error: `De totale lengte is te lang. Deze moet korter zijn dan ${maxLengte} mm.`,
+      error,
       value: 0,
     }
   }

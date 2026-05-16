@@ -16,33 +16,48 @@ export function emptyCustomerProfile() {
 }
 
 const ADDRESS_PROFILE_FIELDS = [
-  ['street', 'Straat en huisnummer'],
-  ['postalCode', 'Postcode'],
-  ['city', 'Plaats'],
-  ['country', 'Land'],
+  ['street', 'customerValidation.street'],
+  ['postalCode', 'customerValidation.postalCode'],
+  ['city', 'customerValidation.city'],
+  ['country', 'customerValidation.country'],
 ]
 
 const REQUIRED_PROFILE_FIELDS = [
-  ['name', 'Naam'],
+  ['name', 'customerValidation.name'],
   ...ADDRESS_PROFILE_FIELDS,
-  ['phone', 'Telefoon'],
+  ['phone', 'customerValidation.phone'],
 ]
 
+const LEGACY_LABELS = {
+  name: 'Naam',
+  street: 'Straat en huisnummer',
+  postalCode: 'Postcode',
+  city: 'Plaats',
+  country: 'Land',
+  phone: 'Telefoon',
+}
+
+function validationMessage(key, t) {
+  if (t) return t(key)
+  const field = key.replace('customerValidation.', '')
+  return `Vul ${LEGACY_LABELS[field] || field} in.`
+}
+
 /** @returns {string | null} Foutmelding of null als adresvelden ingevuld zijn. */
-export function validateCustomerAddress(profile) {
-  for (const [key, label] of ADDRESS_PROFILE_FIELDS) {
-    if (!String(profile?.[key] ?? '').trim()) {
-      return `Vul ${label} in.`
+export function validateCustomerAddress(profile, t) {
+  for (const [fieldKey, msgKey] of ADDRESS_PROFILE_FIELDS) {
+    if (!String(profile?.[fieldKey] ?? '').trim()) {
+      return validationMessage(msgKey, t)
     }
   }
   return null
 }
 
 /** @returns {string | null} Foutmelding of null als alles ingevuld is (bedrijfsnaam optioneel). */
-export function validateCustomerProfile(profile) {
-  for (const [key, label] of REQUIRED_PROFILE_FIELDS) {
-    if (!String(profile?.[key] ?? '').trim()) {
-      return `Vul ${label} in.`
+export function validateCustomerProfile(profile, t) {
+  for (const [fieldKey, msgKey] of REQUIRED_PROFILE_FIELDS) {
+    if (!String(profile?.[fieldKey] ?? '').trim()) {
+      return validationMessage(msgKey, t)
     }
   }
   return null

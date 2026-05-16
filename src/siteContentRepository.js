@@ -1,8 +1,11 @@
 import { get, onValue, ref, set } from 'firebase/database'
 import { database } from './firebase'
 import { DEFAULT_SITE_CONTENT } from './siteContent'
+import { DEFAULT_SITE_CONTENT_EN } from './i18n/siteContentEn.js'
 
 const SITE_CONTENT_PATH = 'siteContent'
+export const SITE_CONTENT_LOCALE_NL = 'nl'
+export const SITE_CONTENT_LOCALE_EN = 'en-GB'
 
 function str(value, fallback) {
   const text = value == null ? '' : String(value).trim()
@@ -19,10 +22,9 @@ function normalizeCalculator(calculator, defaults) {
   return normalizeStringMap(calculator, defaults.calculator)
 }
 
-export function normalizeSiteContent(value) {
+export function normalizeSiteContent(value, defaults = DEFAULT_SITE_CONTENT) {
   const welcome = value?.welcome || {}
   const footer = value?.footer || {}
-  const defaults = DEFAULT_SITE_CONTENT
 
   return {
     home: normalizeStringMap(value?.home, defaults.home),
@@ -48,25 +50,66 @@ export function normalizeSiteContent(value) {
   }
 }
 
+export function createDefaultContentBundle() {
+  return {
+    [SITE_CONTENT_LOCALE_NL]: normalizeSiteContent(null, DEFAULT_SITE_CONTENT),
+    [SITE_CONTENT_LOCALE_EN]: normalizeSiteContent(null, DEFAULT_SITE_CONTENT_EN),
+  }
+}
+
+/** Oude Firebase-structuur: home/welcome/calculator/footer op rootniveau. */
+function isLegacyFlatContent(value) {
+  if (!value || typeof value !== 'object') return false
+  if (value[SITE_CONTENT_LOCALE_NL] || value[SITE_CONTENT_LOCALE_EN]) return false
+  return Boolean(value.welcome || value.home || value.calculator || value.footer)
+}
+
+/** Normaliseert ruwe Firebase-data naar { nl, en-GB }. */
+export function normalizeContentBundle(value) {
+  if (isLegacyFlatContent(value)) {
+    return {
+      [SITE_CONTENT_LOCALE_NL]: normalizeSiteContent(value, DEFAULT_SITE_CONTENT),
+      [SITE_CONTENT_LOCALE_EN]: normalizeSiteContent(value?.[SITE_CONTENT_LOCALE_EN], DEFAULT_SITE_CONTENT_EN),
+    }
+  }
+
+  const nlSource = value?.[SITE_CONTENT_LOCALE_NL] ?? value
+  return {
+    [SITE_CONTENT_LOCALE_NL]: normalizeSiteContent(nlSource, DEFAULT_SITE_CONTENT),
+    [SITE_CONTENT_LOCALE_EN]: normalizeSiteContent(
+      value?.[SITE_CONTENT_LOCALE_EN],
+      DEFAULT_SITE_CONTENT_EN,
+    ),
+  }
+}
+
+/** Teksten voor de actieve site-taal (klant / calculator / footer). */
+export function pickSiteContentForLocale(bundleOrLegacy, locale) {
+  const bundle = normalizeContentBundle(bundleOrLegacy)
+  return locale === SITE_CONTENT_LOCALE_EN
+    ? bundle[SITE_CONTENT_LOCALE_EN]
+    : bundle[SITE_CONTENT_LOCALE_NL]
+}
+
 function contentResultFromSnapshot(snapshot, { seedIfEmpty }) {
   if (!snapshot.exists()) {
     if (seedIfEmpty) {
-      return { needsSeed: true, content: DEFAULT_SITE_CONTENT, source: 'firebase-seeded' }
+      return { needsSeed: true, content: createDefaultContentBundle(), source: 'firebase-seeded' }
     }
     return {
-      content: DEFAULT_SITE_CONTENT,
+      content: createDefaultContentBundle(),
       source: 'firebase',
       message: 'Geen siteteksten in Firebase; standaardteksten worden getoond.',
     }
   }
 
-  return { content: normalizeSiteContent(snapshot.val()), source: 'firebase' }
+  return { content: normalizeContentBundle(snapshot.val()), source: 'firebase' }
 }
 
 export async function loadSiteContent({ seedIfEmpty = true } = {}) {
   if (!database) {
     return {
-      content: DEFAULT_SITE_CONTENT,
+      content: createDefaultContentBundle(),
       source: 'local',
       message: 'Firebase is niet geconfigureerd; standaardteksten worden gebruikt.',
     }
@@ -85,7 +128,7 @@ export async function loadSiteContent({ seedIfEmpty = true } = {}) {
     return result
   } catch (error) {
     return {
-      content: DEFAULT_SITE_CONTENT,
+      content: createDefaultContentBundle(),
       source: 'error',
       message: `Siteteksten laden mislukt: ${error.message}`,
     }
@@ -95,7 +138,7 @@ export async function loadSiteContent({ seedIfEmpty = true } = {}) {
 export function subscribeSiteContent(onUpdate, { seedIfEmpty = false } = {}) {
   if (!database) {
     onUpdate({
-      content: DEFAULT_SITE_CONTENT,
+      content: createDefaultContentBundle(),
       source: 'local',
       message: 'Firebase is niet geconfigureerd.',
     })
@@ -108,11 +151,12 @@ export function subscribeSiteContent(onUpdate, { seedIfEmpty = false } = {}) {
     (snapshot) => {
       const result = contentResultFromSnapshot(snapshot, { seedIfEmpty })
       if (result.needsSeed) {
-        set(contentRef, DEFAULT_SITE_CONTENT)
-          .then(() => onUpdate({ content: DEFAULT_SITE_CONTENT, source: 'firebase-seeded' }))
+        const bundle = createDefaultContentBundle()
+        set(contentRef, bundle)
+          .then(() => onUpdate({ content: bundle, source: 'firebase-seeded' }))
           .catch((error) =>
             onUpdate({
-              content: DEFAULT_SITE_CONTENT,
+              content: bundle,
               source: 'error',
               message: `Siteteksten seeden mislukt: ${error.message}`,
             }),
@@ -123,16 +167,16 @@ export function subscribeSiteContent(onUpdate, { seedIfEmpty = false } = {}) {
     },
     (error) =>
       onUpdate({
-        content: DEFAULT_SITE_CONTENT,
+        content: createDefaultContentBundle(),
         source: 'error',
         message: `Siteteksten laden mislukt: ${error.message}`,
       }),
   )
 }
 
-export async function saveSiteContent(content) {
+export async function saveSiteContent(bundle) {
   if (!database) throw new Error('Firebase is nog niet geconfigureerd.')
-  const normalized = normalizeSiteContent(content)
+  const normalized = normalizeContentBundle(bundle)
   await set(ref(database, SITE_CONTENT_PATH), normalized)
   return normalized
 }

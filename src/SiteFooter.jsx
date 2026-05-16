@@ -1,6 +1,8 @@
 import { DEFAULT_SITE_CONTENT } from './siteContent'
+import { useI18n } from './i18n/I18nContext.jsx'
 
 export default function SiteFooter({ footer = DEFAULT_SITE_CONTENT.footer }) {
+  const { t } = useI18n()
   const year = new Date().getFullYear()
   const f = footer ?? DEFAULT_SITE_CONTENT.footer
   const email = f.email || ''
@@ -17,16 +19,16 @@ export default function SiteFooter({ footer = DEFAULT_SITE_CONTENT.footer }) {
           {f.addressLine3 ? <span>{f.addressLine3}</span> : null}
         </div>
         <div className="site-footer__col">
-          <span className="site-footer__title">Contact</span>
+          <span className="site-footer__title">{t('common.contact')}</span>
           {f.phone ? <span>{f.phone}</span> : null}
           {email ? (
             <span>
-              E-mail: <a href={`mailto:${email}`}>{email}</a>
+              {t('common.email')}: <a href={`mailto:${email}`}>{email}</a>
             </span>
           ) : null}
           {websiteUrl ? (
             <span>
-              Web:{' '}
+              {t('footer.web')}{' '}
               <a href={websiteUrl} target="_blank" rel="noreferrer">
                 {websiteLabel}
               </a>
@@ -34,7 +36,7 @@ export default function SiteFooter({ footer = DEFAULT_SITE_CONTENT.footer }) {
           ) : null}
         </div>
         <div className="site-footer__col">
-          <span className="site-footer__title">Bedrijfsgegevens</span>
+          <span className="site-footer__title">{t('common.companyDetails')}</span>
           {f.kvk ? <span>{f.kvk}</span> : null}
           {f.btw ? <span>{f.btw}</span> : null}
         </div>

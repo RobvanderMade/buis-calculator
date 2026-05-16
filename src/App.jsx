@@ -8,6 +8,9 @@ import HomePage from './HomePage.jsx'
 import SiteHeader from './SiteHeader.jsx'
 import SiteFooter from './SiteFooter.jsx'
 import PipeCanvas from './PipeCanvas.jsx'
+import { I18nProvider, useI18n } from './i18n/I18nContext.jsx'
+import { pickSiteContentForLocale } from './siteContentRepository.js'
+import { getPipeMessages } from './i18n/pipeMessages.js'
 import { DEFAULT_MATERIALS } from './materials.js'
 import { subscribeMaterials } from './materialRepository.js'
 import { DEFAULT_PRICING } from './pricing.js'
@@ -85,6 +88,24 @@ function resolveMaterialIndex(requestMaterial, materialsList) {
 }
 
 export default function App() {
+  const [path, setPath] = useState(window.location.pathname)
+  const page = resolvePage(path)
+
+  useEffect(() => {
+    const onPopState = () => setPath(window.location.pathname)
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [])
+
+  return (
+    <I18nProvider forceLocale={page === 'admin' ? 'nl' : null}>
+      <AppContent path={path} setPath={setPath} page={page} />
+    </I18nProvider>
+  )
+}
+
+function AppContent({ path, setPath, page }) {
+  const { locale, t } = useI18n()
   const [rows, setRows] = useState(initialRows)
   const [materialIndex, setMaterialIndex] = useState(0)
   const [materials, setMaterials] = useState(DEFAULT_MATERIALS)
@@ -93,16 +114,19 @@ export default function App() {
   const [aantalStuks, setAantalStuks] = useState(1)
   const [view, setView] = useState('XY')
   const [isGridFullscreen, setIsGridFullscreen] = useState(false)
-  const [path, setPath] = useState(window.location.pathname)
   const [loginPanelOpen, setLoginPanelOpen] = useState(false)
   const [loginInitialMode, setLoginInitialMode] = useState('login')
   const [session, setSession] = useState(null)
   const [authReady, setAuthReady] = useState(!auth)
   const [requestStatus, setRequestStatus] = useState('')
-  const [siteContent, setSiteContent] = useState(DEFAULT_SITE_CONTENT)
+  const [rawSiteContent, setRawSiteContent] = useState(DEFAULT_SITE_CONTENT)
   const [pricing, setPricing] = useState(DEFAULT_PRICING)
   const [viewingRequest, setViewingRequest] = useState(null)
-  const page = resolvePage(path)
+  const siteContent = useMemo(
+    () => pickSiteContentForLocale(rawSiteContent, locale),
+    [rawSiteContent, locale],
+  )
+  const pipeMessages = useMemo(() => getPipeMessages(t), [t])
   const isAdminPage = page === 'admin'
   const isHomePage = page === 'home'
   const isCalculatorPage = page === 'calculator'
@@ -120,7 +144,10 @@ export default function App() {
     () => calculateTotalLength(lines, material?.radius ?? 0),
     [lines, material],
   )
-  const segmentStatuses = useMemo(() => rowSegmentStatuses(lines, material), [lines, material])
+  const segmentStatuses = useMemo(
+    () => rowSegmentStatuses(lines, material, pipeMessages),
+    [lines, material, pipeMessages],
+  )
 
   const computed = useMemo(() => {
     const prijsPerMTR = material?.prijsPerMTR ?? 0
@@ -156,7 +183,7 @@ export default function App() {
 
   useEffect(() => {
     const unsubscribe = subscribeSiteContent(
-      (result) => setSiteContent(result.content),
+      (result) => setRawSiteContent(result.content),
       { seedIfEmpty: true },
     )
     return unsubscribe
@@ -180,12 +207,6 @@ export default function App() {
       window.removeEventListener('keydown', onKeyDown)
     }
   }, [isGridFullscreen])
-
-  useEffect(() => {
-    const onPopState = () => setPath(window.location.pathname)
-    window.addEventListener('popstate', onPopState)
-    return () => window.removeEventListener('popstate', onPopState)
-  }, [])
 
   useEffect(() => {
     if (!auth) {
@@ -268,8 +289,7 @@ export default function App() {
     if (built?.role === 'admin') {
       navigate('/admin')
     } else {
-      navigate('/')
-      setActivePage('calculator')
+      navigate('/calculator')
     }
   }
 
@@ -277,7 +297,6 @@ export default function App() {
     if (auth) await signOut(auth)
     setSession(null)
     setViewingRequest(null)
-    setActivePage('calculator')
     navigate('/')
   }
 
@@ -330,19 +349,19 @@ export default function App() {
     setRequestStatus('')
 
     if (session?.role !== 'customer') {
-      setRequestStatus('Maak eerst een My BendR account aan of log in om een aanvraag te versturen.')
+      setRequestStatus(siteContent.calculator.loginRequired)
       setLoginInitialMode('register')
       setLoginPanelOpen(true)
       return
     }
 
     if (!session.customerProfile) {
-      setRequestStatus('Vul eerst je accountgegevens aan voordat je een aanvraag verstuurt.')
+      setRequestStatus(siteContent.calculator.profileRequired)
       setLoginPanelOpen(true)
       return
     }
 
-    const validation = validateLines(lines, material)
+    const validation = validateLines(lines, material, pipeMessages)
     if (!validation.ok) {
       setRequestStatus(validation.message)
       return
@@ -380,7 +399,7 @@ export default function App() {
   if (!authReady) {
     return (
       <div className="app app--auth-loading">
-        <p className="status-text">Sessie laden…</p>
+        <p className="status-text">{t('common.loadingSession')}</p>
       </div>
     )
   }
@@ -388,7 +407,7 @@ export default function App() {
   return (
     <div className="app">
       <SiteHeader
-        accountLabel="My BendR"
+        accountLabel={t('header.accountMyBendR')}
         isLoggedIn={Boolean(session)}
         isAdmin={session?.role === 'admin'}
         userLabel={
@@ -437,7 +456,7 @@ export default function App() {
             <LoginPanel
               fixedRole="admin"
               embedded
-              title="Admin login"
+              title={t('login.adminTitle')}
               onLogin={handleLogin}
             />
           </div>
@@ -455,8 +474,8 @@ export default function App() {
           />
         ) : isAccountPage ? (
           <div className="panel stack home-page home-page--gate">
-            <h2>My BendR</h2>
-            <p className="status-text">Log in om je aanvragen en accountgegevens te bekijken.</p>
+            <h2>{t('gate.title')}</h2>
+            <p className="status-text">{t('gate.hint')}</p>
             <button
               type="button"
               className="primary"
@@ -465,7 +484,7 @@ export default function App() {
                 setLoginPanelOpen(true)
               }}
             >
-              Inloggen
+              {t('common.login')}
             </button>
           </div>
         ) : isHomePage ? (
@@ -512,12 +531,12 @@ export default function App() {
           <table className="coord-table">
             <thead>
               <tr>
-                <th>Regel</th>
-                <th>X (mm)</th>
-                <th>Y (mm)</th>
-                <th>Z (mm)</th>
-                <th>Lengte (mm)</th>
-                <th>OK</th>
+                <th>{t('calculator.rowHeader')}</th>
+                <th>{t('calculator.coordX')}</th>
+                <th>{t('calculator.coordY')}</th>
+                <th>{t('calculator.coordZ')}</th>
+                <th>{t('calculator.lengthMm')}</th>
+                <th>{t('calculator.okColumn')}</th>
               </tr>
             </thead>
             <tbody>
@@ -566,7 +585,7 @@ export default function App() {
                   <span
                     className={`request-status request-status--${viewingRequest.status}`}
                   >
-                    {formatRequestStatus(viewingRequest.status)}
+                    {formatRequestStatus(viewingRequest.status, t)}
                   </span>
                 ) : null}
                 <button type="button" className="primary" onClick={startNewCalculation}>
@@ -576,10 +595,10 @@ export default function App() {
             ) : (
               <>
                 <button type="button" onClick={addRow}>
-                  Voeg een regel toe
+                  {t('calculator.addRow')}
                 </button>
                 <button type="button" onClick={resetFields}>
-                  Reset
+                  {t('common.reset')}
                 </button>
               </>
             )}
@@ -587,7 +606,7 @@ export default function App() {
 
           <div>
             <label htmlFor="totalLength">
-              Gestrekte lengte (maximaal {pricing.maxGestrekteLengteMm} mm):
+              {t('calculator.totalLengthLabel', { max: pricing.maxGestrekteLengteMm })}
             </label>
             <br />
             <input
@@ -617,7 +636,7 @@ export default function App() {
           </div>
 
           <div>
-            <label htmlFor="prijsPerStuk">Prijs per stuk (in €):</label>
+            <label htmlFor="prijsPerStuk">{t('calculator.pricePerPiece')}</label>
             <br />
             <input
               id="prijsPerStuk"
@@ -662,10 +681,10 @@ export default function App() {
         <div className="panel panel--viz stack">
           <div className="row-btns">
             {[
-              { id: 'XY', label: 'Vooraanzicht (XY)' },
-              { id: 'XZ', label: 'Bovenaanzicht (XZ)' },
-              { id: 'YZ', label: 'Zijaanzicht (YZ)' },
-              { id: '3D', label: '3D-weergave' },
+              { id: 'XY', label: t('calculator.viewXY') },
+              { id: 'XZ', label: t('calculator.viewXZ') },
+              { id: 'YZ', label: t('calculator.viewYZ') },
+              { id: '3D', label: t('calculator.view3D') },
             ].map((b) => (
               <button
                 key={b.id}
@@ -682,8 +701,8 @@ export default function App() {
               type="button"
               className="canvas-expand-btn"
               onClick={() => setIsGridFullscreen(true)}
-              aria-label="Grid schermvullend openen"
-              title="Vergroot grid"
+              aria-label={t('calculator.expandGrid')}
+              title={t('calculator.enlargeGrid')}
             >
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <path d="M5 10V5h5M14 5h5v5M19 14v5h-5M10 19H5v-5" />
@@ -697,13 +716,18 @@ export default function App() {
             />
           </div>
           {isGridFullscreen ? (
-            <div className="canvas-fullscreen" role="dialog" aria-modal="true" aria-label="Schermvullend grid">
+            <div
+              className="canvas-fullscreen"
+              role="dialog"
+              aria-modal="true"
+              aria-label={t('calculator.fullscreenGrid')}
+            >
               <button
                 type="button"
                 className="canvas-close-btn"
                 onClick={() => setIsGridFullscreen(false)}
-                aria-label="Schermvullend grid sluiten"
-                title="Sluiten"
+                aria-label={t('calculator.closeFullscreen')}
+                title={t('common.close')}
               >
                 X
               </button>
@@ -724,7 +748,7 @@ export default function App() {
         <LoginPanel
           fixedRole="customer"
           initialMode={loginInitialMode}
-          title="My BendR"
+          title={t('login.title')}
           onLogin={handleLogin}
           onClose={() => setLoginPanelOpen(false)}
         />

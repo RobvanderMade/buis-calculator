@@ -25,8 +25,12 @@ export function normalizeRequestStatus(status) {
   return LEGACY_STATUS_MAP[key] || key
 }
 
-export function formatRequestStatus(status) {
+export function formatRequestStatus(status, t) {
   const normalized = normalizeRequestStatus(status)
+  if (t) {
+    const translated = t(`requestStatus.${normalized}`)
+    if (translated && translated !== `requestStatus.${normalized}`) return translated
+  }
   return REQUEST_STATUS_LABELS[normalized] || normalized || REQUEST_STATUS_LABELS.nieuw
 }
 
