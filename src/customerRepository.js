@@ -65,20 +65,46 @@ export function normalizeCustomerProfile(profile) {
   return normalized
 }
 
+function isCustomerDataObject(data) {
+  return data != null && typeof data === 'object' && !Array.isArray(data)
+}
+
+function normalizeCreatedAt(value) {
+  if (value == null || value === '') return ''
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const date = new Date(value)
+    return Number.isNaN(date.getTime()) ? '' : date.toISOString()
+  }
+  if (typeof value === 'string') return value.trim()
+  return ''
+}
+
 export function mapCustomerRecord(uid, data) {
-  const profile = normalizeCustomerProfile({ uid, ...data })
+  const raw = isCustomerDataObject(data) ? data : {}
+  const profile = normalizeCustomerProfile({ uid, ...raw })
   return {
-    uid,
+    uid: String(uid),
     ...profile,
-    email: profile.email || String(data?.email ?? '').trim(),
-    createdAt: profile.createdAt || data?.createdAt || '',
+    email: profile.email || String(raw.email ?? '').trim(),
+    createdAt: normalizeCreatedAt(profile.createdAt ?? raw.createdAt),
   }
 }
 
 export function mapCustomersSnapshot(snapshot) {
   if (!snapshot?.exists?.() || !snapshot.exists()) return []
-  return Object.entries(snapshot.val())
-    .map(([uid, data]) => mapCustomerRecord(uid, data))
+  const value = snapshot.val()
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return []
+
+  return Object.entries(value)
+    .map(([uid, data]) => {
+      try {
+        return mapCustomerRecord(uid, data)
+      } catch (error) {
+        console.warn(`Klant ${uid} overslaan:`, error)
+        return null
+      }
+    })
+    .filter(Boolean)
     .sort((a, b) => {
       const nameCmp = (a.name || '').localeCompare(b.name || '', 'nl', { sensitivity: 'base' })
       if (nameCmp !== 0) return nameCmp

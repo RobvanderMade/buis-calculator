@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import {
   loadCustomers,
   normalizeCustomerProfile,
@@ -45,11 +45,13 @@ const emptyMaterial = {
 }
 
 function formatDate(value) {
-  if (!value) return '-'
+  if (value == null || value === '') return '-'
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) return '-'
   return new Intl.DateTimeFormat('nl-NL', {
     dateStyle: 'short',
     timeStyle: 'short',
-  }).format(new Date(value))
+  }).format(date)
 }
 
 function parseNumber(value) {
@@ -86,6 +88,7 @@ export default function Backoffice({
   const [customers, setCustomers] = useState([])
   const [customersSource, setCustomersSource] = useState('')
   const [customerSearch, setCustomerSearch] = useState('')
+  const [expandedCustomerUid, setExpandedCustomerUid] = useState(null)
 
   const isAdmin = role === 'admin'
 
@@ -131,21 +134,21 @@ export default function Backoffice({
     }
   }
 
-  function applyMaterialResult(result) {
-    setMaterials(result.materials)
-    setMaterialsSource(result.source || '')
-    setMaterialsHint(result.message || '')
-  }
+  const applyMaterialResult = useCallback((result) => {
+    setMaterials(Array.isArray(result?.materials) ? result.materials : [])
+    setMaterialsSource(result?.source || '')
+    setMaterialsHint(result?.message || '')
+  }, [])
 
-  function applySiteContentResult(result) {
-    setSiteContent(result.content)
-    setSiteContentSource(result.source || '')
-  }
+  const applySiteContentResult = useCallback((result) => {
+    if (result?.content) setSiteContent(result.content)
+    setSiteContentSource(result?.source || '')
+  }, [])
 
-  function applyPricingResult(result) {
-    setPricing(result.pricing)
-    setPricingSource(result.source || '')
-  }
+  const applyPricingResult = useCallback((result) => {
+    if (result?.pricing) setPricing(result.pricing)
+    setPricingSource(result?.source || '')
+  }, [])
 
   function updateSiteContentField(section, key, value) {
     setSiteContent((prev) => ({
@@ -158,18 +161,21 @@ export default function Backoffice({
     setPricing((prev) => ({ ...prev, [key]: value }))
   }
 
-  function applyCustomersResult(result) {
-    setCustomers(result.customers || [])
-    setCustomersSource(result.source || '')
-    if (result.source === 'error' && result.message) setMessage(result.message)
-  }
+  const applyCustomersResult = useCallback((result) => {
+    setCustomers(Array.isArray(result?.customers) ? result.customers : [])
+    setCustomersSource(result?.source ?? '')
+    if (result?.source === 'error' && result?.message) {
+      setMessage(result.message)
+    }
+  }, [])
 
   async function refreshBackofficeData() {
+    setMessage('')
     try {
       const requestResult = isAdmin
         ? await loadRequests()
         : await loadRequestsForUser(user.uid)
-      setRequests(requestResult)
+      setRequests(Array.isArray(requestResult) ? requestResult : [])
 
       if (isAdmin) {
         const customerResult = await loadCustomers()
@@ -179,7 +185,7 @@ export default function Backoffice({
         applyMaterialResult(materialResult)
       }
     } catch (error) {
-      setMessage(error.message)
+      setMessage(error?.message || 'Gegevens verversen mislukt.')
     }
   }
 
@@ -208,7 +214,14 @@ export default function Backoffice({
       .catch((error) => setMessage(error.message))
 
     return unsubscribeRequests
-  }, [isAdmin, user.uid])
+  }, [
+    isAdmin,
+    user.uid,
+    applyMaterialResult,
+    applySiteContentResult,
+    applyPricingResult,
+    applyCustomersResult,
+  ])
 
   function editMaterial(material) {
     if (!isAdmin) return
@@ -366,6 +379,57 @@ export default function Backoffice({
       visibleRequests.length === 1 ? 'aanvraag' : 'aanvragen'
     }`
   }, [isAdmin, requestListFilter, visibleRequests.length])
+
+  const requestsByCustomerUid = useMemo(() => {
+    const map = new Map()
+    for (const request of requests) {
+      const uid = request.customerUid
+      if (!uid) continue
+      if (!map.has(uid)) map.set(uid, [])
+      map.get(uid).push(request)
+    }
+    for (const list of map.values()) {
+      list.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))
+    }
+    return map
+  }, [requests])
+
+  const filteredCustomers = useMemo(() => {
+    const query = customerSearch.trim().toLowerCase()
+    if (!query) return customers
+    return customers.filter((customer) => {
+      const haystack = [
+        customer.name,
+        customer.company,
+        customer.email,
+        customer.street,
+        customer.postalCode,
+        customer.city,
+        customer.country,
+        customer.phone,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+      if (haystack.includes(query)) return true
+      const customerRequests = requestsByCustomerUid.get(customer.uid) || []
+      return customerRequests.some((request) => {
+        const requestHaystack = [
+          request.requestNumber,
+          formatRequestStatus(request.status),
+          request.material?.materiaal,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+        return requestHaystack.includes(query)
+      })
+    })
+  }, [customerSearch, customers, requestsByCustomerUid])
+
+  function toggleCustomerExpanded(uid) {
+    setExpandedCustomerUid((current) => (current === uid ? null : uid))
+  }
 
   function handleRequestCardActivate(request) {
     if (typeof onOpenRequestInCalculator !== 'function') return
@@ -734,35 +798,111 @@ export default function Backoffice({
               <table className="customer-directory__table">
                 <thead>
                   <tr>
+                    <th className="customer-directory__col-expand" aria-label="Aanvragen tonen" />
                     <th>Naam</th>
                     <th>Bedrijf</th>
                     <th>E-mail</th>
                     <th>Adres</th>
                     <th>Telefoon</th>
+                    <th>Aanvragen</th>
                     <th>Geregistreerd</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredCustomers.map((customer) => (
-                    <tr key={customer.uid}>
-                      <td data-label="Naam">{customer.name || '—'}</td>
-                      <td data-label="Bedrijf">{customer.company || '—'}</td>
-                      <td data-label="E-mail">
-                        {customer.email ? (
-                          <a href={`mailto:${customer.email}`}>{customer.email}</a>
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-                      <td data-label="Adres">
-                        {[customer.street, customer.postalCode, customer.city, customer.country]
-                          .filter(Boolean)
-                          .join(', ') || '—'}
-                      </td>
-                      <td data-label="Telefoon">{customer.phone || '—'}</td>
-                      <td data-label="Geregistreerd">{formatDate(customer.createdAt)}</td>
-                    </tr>
-                  ))}
+                  {filteredCustomers.map((customer) => {
+                    const customerRequests = requestsByCustomerUid.get(customer.uid) || []
+                    const expanded = expandedCustomerUid === customer.uid
+                    return (
+                      <Fragment key={customer.uid}>
+                        <tr
+                          className={
+                            expanded ? 'customer-directory__row customer-directory__row--expanded' : 'customer-directory__row'
+                          }
+                        >
+                          <td className="customer-directory__col-expand" data-label="Aanvragen">
+                            <button
+                              type="button"
+                              className="customer-directory__expand"
+                              onClick={() => toggleCustomerExpanded(customer.uid)}
+                              aria-expanded={expanded}
+                              aria-label={
+                                expanded
+                                  ? `Aanvragen verbergen voor ${customer.name || 'klant'}`
+                                  : `${customerRequests.length} aanvragen tonen voor ${customer.name || 'klant'}`
+                              }
+                            >
+                              {expanded ? '▼' : '▶'}
+                            </button>
+                          </td>
+                          <td data-label="Naam">{customer.name || '—'}</td>
+                          <td data-label="Bedrijf">{customer.company || '—'}</td>
+                          <td data-label="E-mail">
+                            {customer.email ? (
+                              <a
+                                href={`mailto:${customer.email}`}
+                                onClick={(event) => event.stopPropagation()}
+                              >
+                                {customer.email}
+                              </a>
+                            ) : (
+                              '—'
+                            )}
+                          </td>
+                          <td data-label="Adres">
+                            {[customer.street, customer.postalCode, customer.city, customer.country]
+                              .filter(Boolean)
+                              .join(', ') || '—'}
+                          </td>
+                          <td data-label="Telefoon">{customer.phone || '—'}</td>
+                          <td data-label="Aanvragen">{customerRequests.length}</td>
+                          <td data-label="Geregistreerd">{formatDate(customer.createdAt)}</td>
+                        </tr>
+                        {expanded ? (
+                          <tr className="customer-directory__requests-row">
+                            <td colSpan={8}>
+                              <div className="customer-directory__requests">
+                                {customerRequests.length === 0 ? (
+                                  <p className="hint">Deze klant heeft nog geen aanvragen.</p>
+                                ) : (
+                                  customerRequests.map((request) => (
+                                    <button
+                                      key={request.id}
+                                      type="button"
+                                      className="customer-directory__request"
+                                      disabled={!onOpenRequestInCalculator}
+                                      onClick={() => handleRequestCardActivate(request)}
+                                    >
+                                      <span className="customer-directory__request-main">
+                                        {request.requestNumber ? (
+                                          <span className="request-number">{request.requestNumber}</span>
+                                        ) : null}
+                                        <strong>{request.material?.materiaal || 'Onbekend materiaal'}</strong>
+                                        <span
+                                          className={`request-status request-status--${normalizeRequestStatus(request.status)}`}
+                                        >
+                                          {formatRequestStatus(request.status)}
+                                        </span>
+                                      </span>
+                                      <span className="customer-directory__request-meta">
+                                        {formatDate(request.createdAt)} · {request.aantalStuks} st ·{' '}
+                                        {request.totaalPrijs.toFixed(2)} EUR
+                                        {isRequestArchived(request) ? ' · Historie' : ''}
+                                      </span>
+                                      {onOpenRequestInCalculator ? (
+                                        <span className="data-card__open-hint">
+                                          Openen in calculator
+                                        </span>
+                                      ) : null}
+                                    </button>
+                                  ))
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ) : null}
+                      </Fragment>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
