@@ -17,6 +17,13 @@ export default function HomePage({ content, userName = '', onOpenCalculator }) {
     alt: home[`photo${index}Alt`] || '',
   }))
 
+  const processSteps = [1, 2, 3, 4, 5]
+    .map((index) => ({
+      label: home[`process${index}Label`],
+      text: home[`process${index}Text`],
+    }))
+    .filter((step) => step.label)
+
   return (
     <div className="home-page">
       <img className="home-page__logo" src={logoSrc} alt="IAM BendR" decoding="async" />
@@ -33,6 +40,30 @@ export default function HomePage({ content, userName = '', onOpenCalculator }) {
         ))}
       </div>
 
+      {processSteps.length > 0 ? (
+        <section className="home-process-banner" aria-labelledby="home-process-title">
+          <div className="home-process-banner__inner">
+            <h2 id="home-process-title" className="home-process-banner__title">
+              {home.processTitle}
+            </h2>
+            {home.processIntro ? (
+              <p className="home-process-banner__intro">{home.processIntro}</p>
+            ) : null}
+            <ol className="home-process-banner__steps">
+              {processSteps.map((step, index) => (
+                <li key={step.label} className="home-process-banner__step">
+                  <span className="home-process-banner__num" aria-hidden="true">
+                    {index + 1}
+                  </span>
+                  <span className="home-process-banner__label">{step.label}</span>
+                  <span className="home-process-banner__text">{step.text}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+      ) : null}
+
       <div className="home-page__footer">
         <p className="home-page__outro">{home.bottomText}</p>
         <button type="button" className="primary home-page__cta" onClick={onOpenCalculator}>
@@ -42,3 +73,4 @@ export default function HomePage({ content, userName = '', onOpenCalculator }) {
     </div>
   )
 }
+

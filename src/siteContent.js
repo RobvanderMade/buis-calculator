@@ -11,17 +11,29 @@ export function formatSiteText(template, vars = {}) {
 export const DEFAULT_SITE_CONTENT = {
   home: {
     greetingLoggedIn: 'Welkom terug, {name}',
-    welcomeTitle: 'Welkom bij IAM BendR',
+    welcomeTitle: 'Welkom bij BendR',
     welcomeText:
-      'De online buis-calculator voor snelle berekeningen, visuele controle en eenvoudig aanvragen bij onze engineers.',
+      'De online buisbuigen-calculator voor snelle berekeningen, visuele controle en eenvoudig aanvragen bij onze engineers.',
     photo1Src: 'home/photo1.svg',
     photo1Alt: 'Buis berekenen met afmetingen',
     photo2Src: 'home/photo2.svg',
     photo2Alt: '2D- en 3D-weergave van je buis',
     photo3Src: 'home/photo3.svg',
     photo3Alt: 'Aanvraag versturen via My BendR',
+    processTitle: 'Het proces',
+    processIntro: 'Van eerste berekening tot gebogen buis — zo werkt het bij BendR.',
+    process1Label: 'Berekenen',
+    process1Text: 'Kies materiaal, vul X/Y/Z in en controleer in 2D en 3D.',
+    process2Label: 'Aanvraag',
+    process2Text: 'Verstuur je berekening met My BendR naar onze engineers.',
+    process3Label: 'In behandeling',
+    process3Text: 'Wij controleren je order en sturen een orderbevestiging.',
+    process4Label: 'In productie',
+    process4Text: 'Je buis wordt gebogen volgens de goedgekeurde specificaties.',
+    process5Label: 'Gereed',
+    process5Text: 'Je ontvangt bericht zodra je order klaar is voor afhalen of levering.',
     bottomText:
-      'Probeer de calculator vrijblijvend: kies je materiaal, vul de regels in en bekijk direct het resultaat.',
+      'Probeer de calculator vrijblijvend.',
     ctaTry: 'Probeer',
   },
   welcome: {
