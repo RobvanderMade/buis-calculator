@@ -49,7 +49,7 @@ function parseNumber(value) {
   return Number.isFinite(number) ? number : 0
 }
 
-export default function Backoffice({ user, role, customerProfile, onLogout, onOpenRequestInCalculator }) {
+export default function Backoffice({ user, role, customerProfile, onOpenRequestInCalculator }) {
   const [message, setMessage] = useState('')
   const [materials, setMaterials] = useState([])
   const [materialsSource, setMaterialsSource] = useState('')
@@ -312,9 +312,6 @@ export default function Backoffice({ user, role, customerProfile, onLogout, onOp
             Ingelogd als {user.email} ({isAdmin ? 'admin' : 'My BendR'})
           </p>
         </div>
-        <button type="button" onClick={onLogout}>
-          Uitloggen
-        </button>
       </div>
 
       <div className="row-btns">

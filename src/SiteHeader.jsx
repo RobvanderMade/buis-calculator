@@ -61,10 +61,15 @@ export default function SiteHeader({
   return (
     <header className="site-header">
       <div className="site-header__inner">
-        <div className="site-header__brand">
+        <button
+          type="button"
+          className="site-header__brand site-header__brand-btn"
+          onClick={onHomeClick}
+          aria-label="Naar startpagina"
+        >
           <LogoMark />
           <span className="site-header__tagline">Buis buigen · online calculator</span>
-        </div>
+        </button>
         <div className="site-header__actions">
           {isLoggedIn && userLabel ? (
             <span className="site-header__user" title={userLabel}>

@@ -7,8 +7,23 @@ export function formatSiteText(template, vars = {}) {
   })
 }
 
-/** Standaardteksten voor calculator-welkom en site-footer */
+/** Standaardteksten voor openingspagina, calculator-welkom en site-footer */
 export const DEFAULT_SITE_CONTENT = {
+  home: {
+    greetingLoggedIn: 'Welkom terug, {name}',
+    welcomeTitle: 'Welkom bij IAM BendR',
+    welcomeText:
+      'De online buis-calculator voor snelle berekeningen, visuele controle en eenvoudig aanvragen bij onze engineers.',
+    photo1Src: 'home/photo1.svg',
+    photo1Alt: 'Buis berekenen met afmetingen',
+    photo2Src: 'home/photo2.svg',
+    photo2Alt: '2D- en 3D-weergave van je buis',
+    photo3Src: 'home/photo3.svg',
+    photo3Alt: 'Aanvraag versturen via My BendR',
+    bottomText:
+      'Probeer de calculator vrijblijvend: kies je materiaal, vul de regels in en bekijk direct het resultaat.',
+    ctaTry: 'Probeer',
+  },
   welcome: {
     title: 'Welkom bij de BendR buis-calculator',
     body:

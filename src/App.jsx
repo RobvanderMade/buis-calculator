@@ -4,6 +4,7 @@ import Backoffice from './Backoffice.jsx'
 import { buildSessionForUser } from './authSession.js'
 import { auth } from './firebase.js'
 import LoginPanel from './LoginPanel.jsx'
+import HomePage from './HomePage.jsx'
 import SiteHeader from './SiteHeader.jsx'
 import SiteFooter from './SiteFooter.jsx'
 import PipeCanvas from './PipeCanvas.jsx'
@@ -62,6 +63,13 @@ function rowsFromRequestLines(lines) {
   }))
 }
 
+function resolvePage(pathname) {
+  if (pathname === '/admin') return 'admin'
+  if (pathname === '/account') return 'account'
+  if (pathname === '/calculator') return 'calculator'
+  return 'home'
+}
+
 function resolveMaterialIndex(requestMaterial, materialsList) {
   if (!requestMaterial || !materialsList?.length) return 0
   const byId = requestMaterial.id
@@ -85,7 +93,6 @@ export default function App() {
   const [aantalStuks, setAantalStuks] = useState(1)
   const [view, setView] = useState('XY')
   const [isGridFullscreen, setIsGridFullscreen] = useState(false)
-  const [activePage, setActivePage] = useState('calculator')
   const [path, setPath] = useState(window.location.pathname)
   const [loginPanelOpen, setLoginPanelOpen] = useState(false)
   const [loginInitialMode, setLoginInitialMode] = useState('login')
@@ -95,7 +102,11 @@ export default function App() {
   const [siteContent, setSiteContent] = useState(DEFAULT_SITE_CONTENT)
   const [pricing, setPricing] = useState(DEFAULT_PRICING)
   const [viewingRequest, setViewingRequest] = useState(null)
-  const isAdminPage = path === '/admin'
+  const page = resolvePage(path)
+  const isAdminPage = page === 'admin'
+  const isHomePage = page === 'home'
+  const isCalculatorPage = page === 'calculator'
+  const isAccountPage = page === 'account'
   const isCalculatorReadOnly = Boolean(viewingRequest)
 
   const lines = useMemo(
@@ -309,8 +320,7 @@ export default function App() {
         requestNumber: request.requestNumber || request.id || '—',
       }),
     )
-    navigate('/')
-    setActivePage('calculator')
+    navigate('/calculator')
     setView('XY')
     setLoginPanelOpen(false)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -389,11 +399,10 @@ export default function App() {
               ''
             : ''
         }
-        showBackButton={Boolean(session) && (isAdminPage || activePage === 'customer')}
+        showBackButton={page !== 'home'}
         onAccountClick={() => {
           if (session?.role === 'customer') {
-            navigate('/')
-            setActivePage('customer')
+            navigate('/account')
           } else if (session?.role === 'admin') {
             navigate('/admin')
           } else {
@@ -403,19 +412,19 @@ export default function App() {
         }}
         onHomeClick={() => {
           navigate('/')
-          setActivePage('calculator')
           setViewingRequest(null)
         }}
         onLogoutClick={handleLogout}
       />
       <div className="site-main">
-        {computed.error ? <div className="error-banner">{computed.error}</div> : null}
+        {isCalculatorPage && computed.error ? (
+          <div className="error-banner">{computed.error}</div>
+        ) : null}
 
         {isAdminPage && session?.role === 'admin' ? (
           <Backoffice
             user={session.user}
             role={session.role}
-            onLogout={handleLogout}
             onOpenRequestInCalculator={openRequestInCalculator}
           />
         ) : isAdminPage ? (
@@ -427,15 +436,35 @@ export default function App() {
               onLogin={handleLogin}
             />
           </div>
-        ) : activePage === 'customer' && session ? (
+        ) : isAccountPage && session?.role === 'customer' ? (
           <Backoffice
             user={session.user}
             role={session.role}
             customerProfile={session.customerProfile}
-            onLogout={handleLogout}
             onOpenRequestInCalculator={openRequestInCalculator}
           />
-        ) : (
+        ) : isAccountPage ? (
+          <div className="panel stack home-page home-page--gate">
+            <h2>My BendR</h2>
+            <p className="status-text">Log in om je aanvragen en accountgegevens te bekijken.</p>
+            <button
+              type="button"
+              className="primary"
+              onClick={() => {
+                setLoginInitialMode('login')
+                setLoginPanelOpen(true)
+              }}
+            >
+              Inloggen
+            </button>
+          </div>
+        ) : isHomePage ? (
+          <HomePage
+            content={siteContent}
+            userName={session?.customerProfile?.name || ''}
+            onOpenCalculator={() => navigate('/calculator')}
+          />
+        ) : isCalculatorPage ? (
         <div className="container">
         <div className={`panel stack${isCalculatorReadOnly ? ' panel--readonly' : ''}`}>
           <div className="calculator-welcome">
@@ -678,7 +707,7 @@ export default function App() {
           ) : null}
         </div>
         </div>
-        )}
+        ) : null}
       </div>
       <SiteFooter footer={siteContent.footer} />
       {loginPanelOpen ? (

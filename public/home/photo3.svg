@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 280" role="img" aria-label="Aanvraag versturen">
+  <rect width="400" height="280" fill="#0f1a2a"/>
+  <rect x="24" y="24" width="352" height="232" rx="12" fill="#162436" stroke="#2a4a6e" stroke-width="2"/>
+  <rect x="100" y="90" width="200" height="120" rx="8" fill="#1e3a5f" stroke="#38bdf8" stroke-width="2"/>
+  <path d="M130 130 H270 M130 155 H230 M130 180 H250" stroke="#94a3b8" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="290" cy="170" r="28" fill="#1565c0"/>
+  <path d="M278 170 L286 178 L302 158" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="200" y="248" fill="#94a3b8" font-family="system-ui,sans-serif" font-size="14" text-anchor="middle">Aanvragen</text>
+</svg>

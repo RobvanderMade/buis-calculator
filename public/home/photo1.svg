@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 280" role="img" aria-label="Buis berekenen">
+  <rect width="400" height="280" fill="#0f1a2a"/>
+  <rect x="24" y="24" width="352" height="232" rx="12" fill="#162436" stroke="#2a4a6e" stroke-width="2"/>
+  <path d="M80 200 V120 Q80 88 112 88 H200 Q232 88 232 120 V160" fill="none" stroke="#42a5f5" stroke-width="10" stroke-linecap="round"/>
+  <path d="M232 160 V200" stroke="#42a5f5" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="232" cy="212" r="12" fill="#1565c0"/>
+  <text x="200" y="248" fill="#94a3b8" font-family="system-ui,sans-serif" font-size="14" text-anchor="middle">Berekenen</text>
+</svg>

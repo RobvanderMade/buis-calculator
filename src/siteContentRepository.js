@@ -9,14 +9,14 @@ function str(value, fallback) {
   return text || fallback
 }
 
-function normalizeCalculator(calculator, defaults) {
-  const input = calculator || {}
+function normalizeStringMap(input, defaultsMap) {
   return Object.fromEntries(
-    Object.entries(defaults.calculator).map(([key, fallback]) => [
-      key,
-      str(input[key], fallback),
-    ]),
+    Object.entries(defaultsMap).map(([key, fallback]) => [key, str(input?.[key], fallback)]),
   )
+}
+
+function normalizeCalculator(calculator, defaults) {
+  return normalizeStringMap(calculator, defaults.calculator)
 }
 
 export function normalizeSiteContent(value) {
@@ -25,6 +25,7 @@ export function normalizeSiteContent(value) {
   const defaults = DEFAULT_SITE_CONTENT
 
   return {
+    home: normalizeStringMap(value?.home, defaults.home),
     welcome: {
       title: str(welcome.title, defaults.welcome.title),
       body: str(welcome.body, defaults.welcome.body),

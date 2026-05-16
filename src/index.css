@@ -108,6 +108,129 @@ body.modal-open {
   gap: 14px;
 }
 
+.site-header__brand-btn {
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  padding: 0;
+}
+
+.site-header__brand-btn:hover .site-header__tagline {
+  color: #c8ddf5;
+}
+
+.home-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0;
+  padding: 12px 0 40px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.home-page__logo {
+  width: min(420px, 88vw);
+  height: auto;
+  margin: 8px 0 28px;
+  filter: drop-shadow(0 4px 24px rgba(0, 0, 0, 0.35));
+}
+
+.home-page__greeting {
+  margin: 0 0 10px;
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.home-page__title {
+  margin: 0 0 14px;
+  font-size: clamp(1.5rem, 3.5vw, 2rem);
+  line-height: 1.25;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.home-page__intro {
+  margin: 0 0 36px;
+  max-width: 42rem;
+  color: var(--text-muted);
+  font-size: 1.05rem;
+  line-height: 1.65;
+}
+
+.home-page__gallery {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  width: 100%;
+  margin-bottom: 40px;
+}
+
+.home-page__photo {
+  margin: 0;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border-soft);
+  background: var(--bg-panel);
+  box-shadow: var(--shadow);
+}
+
+.home-page__photo img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 10 / 7;
+  object-fit: cover;
+}
+
+.home-page__footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+}
+
+.home-page__outro {
+  margin: 0;
+  max-width: 36rem;
+  color: var(--text-muted);
+  font-size: 1.02rem;
+  line-height: 1.6;
+}
+
+.home-page__cta {
+  min-width: 160px;
+  padding: 12px 32px;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.home-page--gate {
+  max-width: 480px;
+  text-align: left;
+  align-items: flex-start;
+}
+
+@media (max-width: 720px) {
+  .home-page__gallery {
+    grid-template-columns: 1fr;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .home-page__logo {
+    width: min(320px, 82vw);
+    margin-bottom: 22px;
+  }
+}
+
 .site-header__logo-svg,
 .site-header__logo-img {
   flex-shrink: 0;
