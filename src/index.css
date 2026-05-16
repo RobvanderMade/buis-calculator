@@ -1315,6 +1315,104 @@ table.admin-table td:first-child {
   font-size: 0.9rem;
 }
 
+.account-section h4 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--text);
+}
+
+.account-address-form {
+  margin-top: 4px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-soft);
+}
+
+.account-address-fields label:first-child {
+  grid-column: 1 / -1;
+}
+
+.customer-directory__search {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 360px;
+}
+
+.customer-directory__search input {
+  width: 100%;
+}
+
+.customer-directory__table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  background: var(--bg-panel);
+}
+
+.customer-directory__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.customer-directory__table th,
+.customer-directory__table td {
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.customer-directory__table th {
+  font-weight: 600;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.04);
+  white-space: nowrap;
+}
+
+.customer-directory__table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.customer-directory__table tbody tr:hover {
+  background: rgba(56, 189, 248, 0.06);
+}
+
+.customer-directory__table a {
+  color: var(--accent);
+  word-break: break-all;
+}
+
+@media (max-width: 900px) {
+  .customer-directory__table thead {
+    display: none;
+  }
+
+  .customer-directory__table tbody tr {
+    display: block;
+    padding: 12px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+
+  .customer-directory__table tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  .customer-directory__table td {
+    display: grid;
+    grid-template-columns: 7rem 1fr;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: none;
+  }
+
+  .customer-directory__table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+}
+
 .customer-profile-fields {
   display: grid;
   grid-template-columns: 1fr 1fr;

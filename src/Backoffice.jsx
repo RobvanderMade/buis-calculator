@@ -1,5 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
+  loadCustomers,
+  normalizeCustomerProfile,
+  saveCustomerProfile,
+  subscribeCustomers,
+  validateCustomerAddress,
+  validateCustomerProfile,
+} from './customerRepository.js'
+import {
   createMaterialId,
   deleteMaterial,
   loadMaterials,
@@ -49,8 +57,21 @@ function parseNumber(value) {
   return Number.isFinite(number) ? number : 0
 }
 
-export default function Backoffice({ user, role, customerProfile, onOpenRequestInCalculator }) {
+export default function Backoffice({
+  user,
+  role,
+  customerProfile,
+  onOpenRequestInCalculator,
+  onCustomerProfileUpdate,
+}) {
   const [message, setMessage] = useState('')
+  const [savingAddress, setSavingAddress] = useState(false)
+  const [addressDraft, setAddressDraft] = useState({
+    street: '',
+    postalCode: '',
+    city: '',
+    country: 'Nederland',
+  })
   const [materials, setMaterials] = useState([])
   const [materialsSource, setMaterialsSource] = useState('')
   const [materialsHint, setMaterialsHint] = useState('')
@@ -62,8 +83,53 @@ export default function Backoffice({ user, role, customerProfile, onOpenRequestI
   const [pricingSource, setPricingSource] = useState('')
   const [activeTab, setActiveTab] = useState('requests')
   const [requestListFilter, setRequestListFilter] = useState('open')
+  const [customers, setCustomers] = useState([])
+  const [customersSource, setCustomersSource] = useState('')
+  const [customerSearch, setCustomerSearch] = useState('')
 
   const isAdmin = role === 'admin'
+
+  useEffect(() => {
+    if (!customerProfile) return
+    setAddressDraft({
+      street: customerProfile.street || '',
+      postalCode: customerProfile.postalCode || '',
+      city: customerProfile.city || '',
+      country: customerProfile.country || 'Nederland',
+    })
+  }, [customerProfile])
+
+  async function handleSaveAddress(event) {
+    event.preventDefault()
+    if (!customerProfile) {
+      setMessage('Geen accountgegevens om bij te werken.')
+      return
+    }
+
+    const merged = normalizeCustomerProfile({ ...customerProfile, ...addressDraft })
+    const addressError = validateCustomerAddress(merged)
+    if (addressError) {
+      setMessage(addressError)
+      return
+    }
+    const profileError = validateCustomerProfile(merged)
+    if (profileError) {
+      setMessage(profileError)
+      return
+    }
+
+    setSavingAddress(true)
+    setMessage('')
+    try {
+      await saveCustomerProfile(user.uid, merged)
+      onCustomerProfileUpdate?.(merged)
+      setMessage('Adresgegevens opgeslagen.')
+    } catch (error) {
+      setMessage(`Adres opslaan mislukt: ${error.message}`)
+    } finally {
+      setSavingAddress(false)
+    }
+  }
 
   function applyMaterialResult(result) {
     setMaterials(result.materials)
@@ -92,6 +158,12 @@ export default function Backoffice({ user, role, customerProfile, onOpenRequestI
     setPricing((prev) => ({ ...prev, [key]: value }))
   }
 
+  function applyCustomersResult(result) {
+    setCustomers(result.customers || [])
+    setCustomersSource(result.source || '')
+    if (result.source === 'error' && result.message) setMessage(result.message)
+  }
+
   async function refreshBackofficeData() {
     try {
       const requestResult = isAdmin
@@ -99,7 +171,10 @@ export default function Backoffice({ user, role, customerProfile, onOpenRequestI
         : await loadRequestsForUser(user.uid)
       setRequests(requestResult)
 
-      if (!isAdmin) {
+      if (isAdmin) {
+        const customerResult = await loadCustomers()
+        applyCustomersResult(customerResult)
+      } else {
         const materialResult = await loadMaterials()
         applyMaterialResult(materialResult)
       }
@@ -117,12 +192,14 @@ export default function Backoffice({ user, role, customerProfile, onOpenRequestI
       const unsubscribeMaterials = subscribeMaterials(applyMaterialResult, { seedIfEmpty: false })
       const unsubscribeContent = subscribeSiteContent(applySiteContentResult, { seedIfEmpty: false })
       const unsubscribePricing = subscribePricing(applyPricingResult, { seedIfEmpty: false })
+      const unsubscribeCustomers = subscribeCustomers(applyCustomersResult)
 
       return () => {
         unsubscribeRequests()
         unsubscribeMaterials()
         unsubscribeContent()
         unsubscribePricing()
+        unsubscribeCustomers()
       }
     }
 
@@ -326,6 +403,15 @@ export default function Backoffice({ user, role, customerProfile, onOpenRequestI
         {isAdmin ? (
           <button
             type="button"
+            className={activeTab === 'customers' ? 'view-active' : ''}
+            onClick={() => setActiveTab('customers')}
+          >
+            Klantenbestand ({customers.length})
+          </button>
+        ) : null}
+        {isAdmin ? (
+          <button
+            type="button"
             className={activeTab === 'materials' ? 'view-active' : ''}
             onClick={() => setActiveTab('materials')}
           >
@@ -358,7 +444,7 @@ export default function Backoffice({ user, role, customerProfile, onOpenRequestI
       {message ? <p className="status-text">{message}</p> : null}
 
       {!isAdmin ? (
-        <section className="panel stack">
+        <section className="panel stack account-section">
           <h3>Accountgegevens</h3>
           <div className="data-card account-details">
             <p>
@@ -375,13 +461,6 @@ export default function Backoffice({ user, role, customerProfile, onOpenRequestI
                   <strong>Naam:</strong> {customerProfile.name}
                 </p>
                 <p>
-                  <strong>Adres:</strong> {customerProfile.street}, {customerProfile.postalCode}{' '}
-                  {customerProfile.city}
-                </p>
-                <p>
-                  <strong>Land:</strong> {customerProfile.country}
-                </p>
-                <p>
                   <strong>Telefoon:</strong> {customerProfile.phone}
                 </p>
               </>
@@ -389,6 +468,68 @@ export default function Backoffice({ user, role, customerProfile, onOpenRequestI
               <p className="hint">Geen accountgegevens gevonden.</p>
             )}
           </div>
+
+          {customerProfile ? (
+            <form className="account-address-form stack" onSubmit={handleSaveAddress}>
+              <h4>Adresgegevens</h4>
+              <p className="hint">Pas je adres aan; wijzigingen gelden voor nieuwe aanvragen.</p>
+              <div className="customer-profile-fields account-address-fields">
+                <label>
+                  Straat en huisnummer
+                  <input
+                    type="text"
+                    value={addressDraft.street}
+                    onChange={(event) =>
+                      setAddressDraft((prev) => ({ ...prev, street: event.target.value }))
+                    }
+                    required
+                    autoComplete="street-address"
+                  />
+                </label>
+                <label>
+                  Postcode
+                  <input
+                    type="text"
+                    value={addressDraft.postalCode}
+                    onChange={(event) =>
+                      setAddressDraft((prev) => ({ ...prev, postalCode: event.target.value }))
+                    }
+                    required
+                    autoComplete="postal-code"
+                  />
+                </label>
+                <label>
+                  Plaats
+                  <input
+                    type="text"
+                    value={addressDraft.city}
+                    onChange={(event) =>
+                      setAddressDraft((prev) => ({ ...prev, city: event.target.value }))
+                    }
+                    required
+                    autoComplete="address-level2"
+                  />
+                </label>
+                <label>
+                  Land
+                  <input
+                    type="text"
+                    value={addressDraft.country}
+                    onChange={(event) =>
+                      setAddressDraft((prev) => ({ ...prev, country: event.target.value }))
+                    }
+                    required
+                    autoComplete="country-name"
+                  />
+                </label>
+              </div>
+              <div className="row-btns">
+                <button type="submit" className="primary" disabled={savingAddress}>
+                  {savingAddress ? 'Opslaan…' : 'Adres opslaan'}
+                </button>
+              </div>
+            </form>
+          ) : null}
         </section>
       ) : null}
 
@@ -559,6 +700,73 @@ export default function Backoffice({ user, role, customerProfile, onOpenRequestI
               </article>
             ))}
           </div>
+        </section>
+      )}
+
+      {isAdmin && activeTab === 'customers' && (
+        <section className="panel stack customer-directory">
+          <div className="data-card__head">
+            <h3>Klantenbestand</h3>
+            <span className="hint">
+              {customersSource === 'firebase'
+                ? `${filteredCustomers.length} van ${customers.length} klanten`
+                : 'Klanten laden…'}
+            </span>
+          </div>
+          <label className="customer-directory__search">
+            Zoeken
+            <input
+              type="search"
+              value={customerSearch}
+              onChange={(event) => setCustomerSearch(event.target.value)}
+              placeholder="Naam, e-mail, plaats, telefoon…"
+              autoComplete="off"
+            />
+          </label>
+          {filteredCustomers.length === 0 ? (
+            <p className="hint">
+              {customers.length === 0
+                ? 'Nog geen geregistreerde klanten in Firebase.'
+                : 'Geen klanten gevonden voor deze zoekopdracht.'}
+            </p>
+          ) : (
+            <div className="customer-directory__table-wrap">
+              <table className="customer-directory__table">
+                <thead>
+                  <tr>
+                    <th>Naam</th>
+                    <th>Bedrijf</th>
+                    <th>E-mail</th>
+                    <th>Adres</th>
+                    <th>Telefoon</th>
+                    <th>Geregistreerd</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredCustomers.map((customer) => (
+                    <tr key={customer.uid}>
+                      <td data-label="Naam">{customer.name || '—'}</td>
+                      <td data-label="Bedrijf">{customer.company || '—'}</td>
+                      <td data-label="E-mail">
+                        {customer.email ? (
+                          <a href={`mailto:${customer.email}`}>{customer.email}</a>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                      <td data-label="Adres">
+                        {[customer.street, customer.postalCode, customer.city, customer.country]
+                          .filter(Boolean)
+                          .join(', ') || '—'}
+                      </td>
+                      <td data-label="Telefoon">{customer.phone || '—'}</td>
+                      <td data-label="Geregistreerd">{formatDate(customer.createdAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
       )}
 

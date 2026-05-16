@@ -442,6 +442,11 @@ export default function App() {
             role={session.role}
             customerProfile={session.customerProfile}
             onOpenRequestInCalculator={openRequestInCalculator}
+            onCustomerProfileUpdate={(profile) =>
+              setSession((current) =>
+                current ? { ...current, customerProfile: profile } : current,
+              )
+            }
           />
         ) : isAccountPage ? (
           <div className="panel stack home-page home-page--gate">
