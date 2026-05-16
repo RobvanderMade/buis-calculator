@@ -65,6 +65,7 @@ body {
 
 body.modal-open {
   overflow: hidden;
+  overscroll-behavior: none;
 }
 
 #root {
@@ -794,9 +795,9 @@ table.admin-table td:first-child {
   position: fixed;
   inset: 0;
   z-index: 1200;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   padding: 20px;
   background: rgba(4, 6, 10, 0.72);
   backdrop-filter: blur(6px);
@@ -804,11 +805,19 @@ table.admin-table td:first-child {
 
 .login-card {
   width: min(560px, 100%);
+  margin: auto;
   padding: 22px;
   border-radius: var(--radius);
   background: var(--bg-panel);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
+}
+
+.login-overlay .login-card {
+  max-height: calc(100vh - 40px);
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .admin-login-page {

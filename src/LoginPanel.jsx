@@ -1,11 +1,16 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
 } from 'firebase/auth'
 import { auth } from './firebase'
-import { emptyCustomerProfile, saveCustomerProfile } from './customerRepository'
+import {
+  emptyCustomerProfile,
+  normalizeCustomerProfile,
+  saveCustomerProfile,
+  validateCustomerProfile,
+} from './customerRepository'
 
 export default function LoginPanel({
   fixedRole = 'customer',
@@ -22,6 +27,28 @@ export default function LoginPanel({
   const [showPassword, setShowPassword] = useState(false)
   const [profile, setProfile] = useState(emptyCustomerProfile)
   const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    if (embedded) return undefined
+
+    const scrollY = window.scrollY
+    document.body.classList.add('modal-open')
+    document.body.style.position = 'fixed'
+    document.body.style.top = `-${scrollY}px`
+    document.body.style.left = '0'
+    document.body.style.right = '0'
+    document.body.style.width = '100%'
+
+    return () => {
+      document.body.classList.remove('modal-open')
+      document.body.style.position = ''
+      document.body.style.top = ''
+      document.body.style.left = ''
+      document.body.style.right = ''
+      document.body.style.width = ''
+      window.scrollTo(0, scrollY)
+    }
+  }, [embedded])
 
   function selectRole(nextRole) {
     if (fixedRole) return
@@ -46,15 +73,24 @@ export default function LoginPanel({
         return
       }
 
+      if (mode === 'register' && role === 'customer') {
+        const profileError = validateCustomerProfile(profile)
+        if (profileError) {
+          setMessage(profileError)
+          return
+        }
+      }
+
       const result =
         mode === 'register'
           ? await createUserWithEmailAndPassword(auth, email, password)
           : await signInWithEmailAndPassword(auth, email, password)
       let customerProfile = null
       if (mode === 'register' && role === 'customer') {
+        const normalizedProfile = normalizeCustomerProfile(profile)
         customerProfile = await saveCustomerProfile(result.user.uid, {
           uid: result.user.uid,
-          ...profile,
+          ...normalizedProfile,
           email,
           createdAt: new Date().toISOString(),
         })
@@ -125,7 +161,13 @@ export default function LoginPanel({
         <form className="stack" onSubmit={handleSubmit}>
           <label>
             E-mail
-            <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+            <input
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+              autoComplete="email"
+            />
           </label>
           {mode !== 'reset' ? (
             <label>
@@ -136,6 +178,8 @@ export default function LoginPanel({
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   required
+                  minLength={mode === 'register' ? 6 : undefined}
+                  autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
                 />
                 <button
                   type="button"
@@ -182,11 +226,12 @@ export default function LoginPanel({
           {role === 'customer' && mode === 'register' ? (
             <div className="customer-profile-fields">
               <label>
-                Bedrijfsnaam
+                Bedrijfsnaam <span className="hint">(optioneel)</span>
                 <input
                   type="text"
                   value={profile.company}
                   onChange={(event) => setProfile((prev) => ({ ...prev, company: event.target.value }))}
+                  autoComplete="organization"
                 />
               </label>
               <label>
@@ -196,6 +241,7 @@ export default function LoginPanel({
                   value={profile.name}
                   onChange={(event) => setProfile((prev) => ({ ...prev, name: event.target.value }))}
                   required
+                  autoComplete="name"
                 />
               </label>
               <label>
@@ -205,6 +251,7 @@ export default function LoginPanel({
                   value={profile.street}
                   onChange={(event) => setProfile((prev) => ({ ...prev, street: event.target.value }))}
                   required
+                  autoComplete="street-address"
                 />
               </label>
               <label>
@@ -214,6 +261,7 @@ export default function LoginPanel({
                   value={profile.postalCode}
                   onChange={(event) => setProfile((prev) => ({ ...prev, postalCode: event.target.value }))}
                   required
+                  autoComplete="postal-code"
                 />
               </label>
               <label>
@@ -223,6 +271,7 @@ export default function LoginPanel({
                   value={profile.city}
                   onChange={(event) => setProfile((prev) => ({ ...prev, city: event.target.value }))}
                   required
+                  autoComplete="address-level2"
                 />
               </label>
               <label>
@@ -232,15 +281,17 @@ export default function LoginPanel({
                   value={profile.country}
                   onChange={(event) => setProfile((prev) => ({ ...prev, country: event.target.value }))}
                   required
+                  autoComplete="country-name"
                 />
               </label>
               <label>
                 Telefoon
                 <input
-                  type="text"
+                  type="tel"
                   value={profile.phone}
                   onChange={(event) => setProfile((prev) => ({ ...prev, phone: event.target.value }))}
                   required
+                  autoComplete="tel"
                 />
               </label>
             </div>

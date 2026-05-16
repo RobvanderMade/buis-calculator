@@ -9,6 +9,16 @@ function str(value, fallback) {
   return text || fallback
 }
 
+function normalizeCalculator(calculator, defaults) {
+  const input = calculator || {}
+  return Object.fromEntries(
+    Object.entries(defaults.calculator).map(([key, fallback]) => [
+      key,
+      str(input[key], fallback),
+    ]),
+  )
+}
+
 export function normalizeSiteContent(value) {
   const welcome = value?.welcome || {}
   const footer = value?.footer || {}
@@ -19,6 +29,7 @@ export function normalizeSiteContent(value) {
       title: str(welcome.title, defaults.welcome.title),
       body: str(welcome.body, defaults.welcome.body),
     },
+    calculator: normalizeCalculator(value?.calculator, defaults),
     footer: {
       companyTitle: str(footer.companyTitle, defaults.footer.companyTitle),
       addressLine1: str(footer.addressLine1, defaults.footer.addressLine1),

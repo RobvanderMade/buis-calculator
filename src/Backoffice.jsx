@@ -672,8 +672,139 @@ export default function Backoffice({ user, role, customerProfile, onLogout, onOp
                 />
               </label>
               <p className="hint">
-                Ingelogde klanten zien automatisch &quot;Hoi [naam],&quot; vóór deze tekst.
+                De persoonlijke begroeting stel je hieronder in (met {'{name}'}).
               </p>
+            </fieldset>
+
+            <fieldset className="site-content-form__group">
+              <legend>Calculator — meldingen &amp; knoppen</legend>
+              <label>
+                Persoonlijke begroeting
+                <input
+                  type="text"
+                  value={siteContent.calculator.greeting}
+                  onChange={(event) =>
+                    updateSiteContentField('calculator', 'greeting', event.target.value)
+                  }
+                />
+                <span className="hint">Alleen zichtbaar als de klant is ingelogd. Gebruik {'{name}'}.</span>
+              </label>
+              <label className="site-content-form__full">
+                Aanvraag geopend in calculator
+                <textarea
+                  rows={2}
+                  value={siteContent.calculator.requestOpened}
+                  onChange={(event) =>
+                    updateSiteContentField('calculator', 'requestOpened', event.target.value)
+                  }
+                />
+              </label>
+              <label className="site-content-form__full">
+                Aanvraag geladen (alternatieve melding)
+                <textarea
+                  rows={2}
+                  value={siteContent.calculator.requestLoaded}
+                  onChange={(event) =>
+                    updateSiteContentField('calculator', 'requestLoaded', event.target.value)
+                  }
+                />
+              </label>
+              <label className="site-content-form__full">
+                Inloggen verplicht
+                <textarea
+                  rows={2}
+                  value={siteContent.calculator.loginRequired}
+                  onChange={(event) =>
+                    updateSiteContentField('calculator', 'loginRequired', event.target.value)
+                  }
+                />
+              </label>
+              <label className="site-content-form__full">
+                Accountgegevens ontbreken
+                <textarea
+                  rows={2}
+                  value={siteContent.calculator.profileRequired}
+                  onChange={(event) =>
+                    updateSiteContentField('calculator', 'profileRequired', event.target.value)
+                  }
+                />
+              </label>
+              <label className="site-content-form__full">
+                Aanvraag verzonden (met nummer)
+                <textarea
+                  rows={2}
+                  value={siteContent.calculator.requestSuccessWithNumber}
+                  onChange={(event) =>
+                    updateSiteContentField(
+                      'calculator',
+                      'requestSuccessWithNumber',
+                      event.target.value,
+                    )
+                  }
+                />
+                <span className="hint">Gebruik {'{requestNumber}'} voor het aanvraagnummer.</span>
+              </label>
+              <label className="site-content-form__full">
+                Aanvraag verzonden (zonder nummer)
+                <textarea
+                  rows={2}
+                  value={siteContent.calculator.requestSuccess}
+                  onChange={(event) =>
+                    updateSiteContentField('calculator', 'requestSuccess', event.target.value)
+                  }
+                />
+              </label>
+              <label className="site-content-form__full">
+                Aanvraag opslaan mislukt
+                <textarea
+                  rows={2}
+                  value={siteContent.calculator.requestSaveFailed}
+                  onChange={(event) =>
+                    updateSiteContentField('calculator', 'requestSaveFailed', event.target.value)
+                  }
+                />
+                <span className="hint">Gebruik {'{error}'} voor de foutmelding.</span>
+              </label>
+              <label className="site-content-form__full">
+                Hint — ingelogde klant
+                <textarea
+                  rows={2}
+                  value={siteContent.calculator.hintCustomer}
+                  onChange={(event) =>
+                    updateSiteContentField('calculator', 'hintCustomer', event.target.value)
+                  }
+                />
+              </label>
+              <label className="site-content-form__full">
+                Hint — niet ingelogd
+                <textarea
+                  rows={2}
+                  value={siteContent.calculator.hintGuest}
+                  onChange={(event) =>
+                    updateSiteContentField('calculator', 'hintGuest', event.target.value)
+                  }
+                />
+              </label>
+              <label>
+                Knoptekst — aanvraag aanmaken
+                <input
+                  type="text"
+                  value={siteContent.calculator.submitButtonCustomer}
+                  onChange={(event) =>
+                    updateSiteContentField('calculator', 'submitButtonCustomer', event.target.value)
+                  }
+                />
+              </label>
+              <label>
+                Knoptekst — inloggen om te versturen
+                <input
+                  type="text"
+                  value={siteContent.calculator.submitButtonGuest}
+                  onChange={(event) =>
+                    updateSiteContentField('calculator', 'submitButtonGuest', event.target.value)
+                  }
+                />
+              </label>
             </fieldset>
 
             <fieldset className="site-content-form__group">

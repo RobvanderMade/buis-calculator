@@ -12,7 +12,7 @@ import { DEFAULT_MATERIALS } from './materials.js'
 import { subscribeMaterials } from './materialRepository.js'
 import { DEFAULT_PRICING } from './pricing.js'
 import { normalizePricing, subscribePricing } from './pricingRepository.js'
-import { DEFAULT_SITE_CONTENT } from './siteContent.js'
+import { DEFAULT_SITE_CONTENT, formatSiteText } from './siteContent.js'
 import { subscribeSiteContent } from './siteContentRepository.js'
 import { createRequest } from './requestRepository.js'
 import {
@@ -204,20 +204,6 @@ export default function App() {
     setAantalStuks(1)
   }
 
-  function openRequestInCalculator(request) {
-    if (!request) return
-    setRows(rowsFromRequestLines(request.lines))
-    setMaterialIndex(resolveMaterialIndex(request.material, materials))
-    setAantalStuks(Math.max(1, parseInt(String(request.aantalStuks), 10) || 1))
-    setRequestStatus(
-      'Aanvraag geladen in de calculator. Je kunt gegevens aanpassen en opnieuw versturen.',
-    )
-    setActivePage('calculator')
-    navigate('/')
-    setLoginPanelOpen(false)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
   async function handleLogin(nextSession) {
     const hasAdminRights = await loadAdminStatus(nextSession.user.uid)
     const role = hasAdminRights ? 'admin' : 'customer'
@@ -275,12 +261,12 @@ export default function App() {
       if (idx >= 0) setMaterialIndex(idx)
     }
     setAantalStuks(Math.max(1, parseInt(String(request.aantalStuks), 10) || 1))
-    setRequestStatus(
-      'Deze aanvraag staat in de calculator. Pas desgewijst aan en verstuur opnieuw indien nodig.',
-    )
+    setRequestStatus(siteContent.calculator.requestOpened)
     navigate('/')
     setActivePage('calculator')
     setView('XY')
+    setLoginPanelOpen(false)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   async function submitRequest() {
@@ -321,11 +307,15 @@ export default function App() {
       })
       setRequestStatus(
         created.requestNumber
-          ? `Aanvraag ${created.requestNumber} is aangemaakt, bedankt. Na controle door onze engineer sturen wij je een orderbevestiging.`
-          : 'Aanvraag aangemaakt, bedankt. Na controle door onze engineer sturen wij je een orderbevestiging.',
+          ? formatSiteText(siteContent.calculator.requestSuccessWithNumber, {
+              requestNumber: created.requestNumber,
+            })
+          : siteContent.calculator.requestSuccess,
       )
     } catch (error) {
-      setRequestStatus(`Aanvraag opslaan mislukt: ${error.message}`)
+      setRequestStatus(
+        formatSiteText(siteContent.calculator.requestSaveFailed, { error: error.message }),
+      )
     }
   }
 
@@ -395,8 +385,11 @@ export default function App() {
             <h2>{siteContent.welcome.title}</h2>
             <p>
               {session?.customerProfile?.name
-                ? `Hoi ${session.customerProfile.name}, `
+                ? formatSiteText(siteContent.calculator.greeting, {
+                    name: session.customerProfile.name,
+                  })
                 : ''}
+              {session?.customerProfile?.name ? ' ' : ''}
               {siteContent.welcome.body}
             </p>
           </div>
@@ -521,15 +514,15 @@ export default function App() {
 
           <p className="hint">
             {session?.role === 'customer'
-              ? 'Klaar met invoeren? Verstuur je aanvraag hieronder.'
-              : 'Inloggen met een My BendR account is verplicht om een aanvraag te versturen.'}
+              ? siteContent.calculator.hintCustomer
+              : siteContent.calculator.hintGuest}
           </p>
 
           <div className="row-btns">
             <button type="button" className="primary" onClick={submitRequest}>
               {session?.role === 'customer'
-                ? 'Aanvraag aanmaken'
-                : 'Inloggen om aanvraag te versturen'}
+                ? siteContent.calculator.submitButtonCustomer
+                : siteContent.calculator.submitButtonGuest}
             </button>
           </div>
           {requestStatus ? <p className="status-text">{requestStatus}</p> : null}
