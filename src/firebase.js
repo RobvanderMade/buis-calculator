@@ -1,5 +1,5 @@
 import { getApps, initializeApp } from 'firebase/app'
-import { getAuth } from 'firebase/auth'
+import { browserLocalPersistence, getAuth, setPersistence } from 'firebase/auth'
 import { getDatabase } from 'firebase/database'
 
 const firebaseConfig = {
@@ -24,3 +24,7 @@ const hasFirebaseConfig =
 export const firebaseApp = hasFirebaseConfig ? getApps()[0] || initializeApp(firebaseConfig) : null
 export const auth = firebaseApp ? getAuth(firebaseApp) : null
 export const database = firebaseApp ? getDatabase(firebaseApp) : null
+
+if (auth) {
+  setPersistence(auth, browserLocalPersistence).catch(() => {})
+}

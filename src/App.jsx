@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { signOut } from 'firebase/auth'
+import { onAuthStateChanged, signOut } from 'firebase/auth'
 import Backoffice from './Backoffice.jsx'
+import { buildSessionForUser } from './authSession.js'
 import { auth } from './firebase.js'
-import { loadAdminStatus } from './adminRepository.js'
-import { loadCustomerProfile } from './customerRepository.js'
 import LoginPanel from './LoginPanel.jsx'
 import SiteHeader from './SiteHeader.jsx'
 import SiteFooter from './SiteFooter.jsx'
@@ -14,7 +13,11 @@ import { DEFAULT_PRICING } from './pricing.js'
 import { normalizePricing, subscribePricing } from './pricingRepository.js'
 import { DEFAULT_SITE_CONTENT, formatSiteText } from './siteContent.js'
 import { subscribeSiteContent } from './siteContentRepository.js'
-import { createRequest } from './requestRepository.js'
+import {
+  createRequest,
+  formatRequestStatus,
+  normalizeRequestStatus,
+} from './requestRepository.js'
 import {
   calculatePricePerStuk,
   calculateTotalLength,
@@ -87,10 +90,13 @@ export default function App() {
   const [loginPanelOpen, setLoginPanelOpen] = useState(false)
   const [loginInitialMode, setLoginInitialMode] = useState('login')
   const [session, setSession] = useState(null)
+  const [authReady, setAuthReady] = useState(!auth)
   const [requestStatus, setRequestStatus] = useState('')
   const [siteContent, setSiteContent] = useState(DEFAULT_SITE_CONTENT)
   const [pricing, setPricing] = useState(DEFAULT_PRICING)
+  const [viewingRequest, setViewingRequest] = useState(null)
   const isAdminPage = path === '/admin'
+  const isCalculatorReadOnly = Boolean(viewingRequest)
 
   const lines = useMemo(
     () => rows.map((r) => ({ x: parseCoord(r.x), y: parseCoord(r.y), z: parseCoord(r.z) })),
@@ -170,7 +176,41 @@ export default function App() {
     return () => window.removeEventListener('popstate', onPopState)
   }, [])
 
+  useEffect(() => {
+    if (!auth) {
+      setAuthReady(true)
+      return undefined
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        setSession(null)
+        setAuthReady(true)
+        return
+      }
+
+      try {
+        const restored = await buildSessionForUser(user)
+        setSession(restored)
+      } catch {
+        setSession({ user, role: 'customer', customerProfile: null })
+      }
+      setAuthReady(true)
+    })
+
+    return unsubscribe
+  }, [])
+
+  function startNewCalculation({ clearStatus = true } = {}) {
+    setViewingRequest(null)
+    setRows(initialRows())
+    setAantalStuks(1)
+    setMaterialIndex(0)
+    if (clearStatus) setRequestStatus('')
+  }
+
   function updateCell(rowIndex, key, raw) {
+    if (isCalculatorReadOnly) return
     setRows((prev) =>
       prev.map((row, i) => {
         if (i !== rowIndex) return row
@@ -180,6 +220,7 @@ export default function App() {
   }
 
   function handleCoordKeyDown(event, rowIndex, key) {
+    if (isCalculatorReadOnly) return
     const current = rows[rowIndex][key]
     if (!isCoordZero(current)) return
 
@@ -196,29 +237,24 @@ export default function App() {
   }
 
   function addRow() {
+    if (isCalculatorReadOnly) return
     setRows((prev) => [...prev, { x: 0, y: 0, z: 0 }])
   }
 
   function resetFields() {
+    if (isCalculatorReadOnly) {
+      startNewCalculation()
+      return
+    }
     setRows(initialRows())
     setAantalStuks(1)
   }
 
   async function handleLogin(nextSession) {
-    const hasAdminRights = await loadAdminStatus(nextSession.user.uid)
-    const role = hasAdminRights ? 'admin' : 'customer'
-
-    let customerProfile = nextSession.customerProfile ?? null
-    if (role === 'customer' && !customerProfile) {
-      try {
-        customerProfile = await loadCustomerProfile(nextSession.user.uid)
-      } catch {
-        customerProfile = null
-      }
-    }
-    setSession({ ...nextSession, role, customerProfile })
+    const built = await buildSessionForUser(nextSession.user, nextSession.customerProfile)
+    setSession(built)
     setLoginPanelOpen(false)
-    if (role === 'admin') {
+    if (built?.role === 'admin') {
       navigate('/admin')
     } else {
       navigate('/')
@@ -229,7 +265,9 @@ export default function App() {
   async function handleLogout() {
     if (auth) await signOut(auth)
     setSession(null)
+    setViewingRequest(null)
     setActivePage('calculator')
+    navigate('/')
   }
 
   function navigate(nextPath) {
@@ -261,7 +299,16 @@ export default function App() {
       if (idx >= 0) setMaterialIndex(idx)
     }
     setAantalStuks(Math.max(1, parseInt(String(request.aantalStuks), 10) || 1))
-    setRequestStatus(siteContent.calculator.requestOpened)
+    setViewingRequest({
+      id: request.id,
+      requestNumber: request.requestNumber || '',
+      status: normalizeRequestStatus(request.status),
+    })
+    setRequestStatus(
+      formatSiteText(siteContent.calculator.requestOpened, {
+        requestNumber: request.requestNumber || request.id || '—',
+      }),
+    )
     navigate('/')
     setActivePage('calculator')
     setView('XY')
@@ -312,11 +359,20 @@ export default function App() {
             })
           : siteContent.calculator.requestSuccess,
       )
+      startNewCalculation({ clearStatus: false })
     } catch (error) {
       setRequestStatus(
         formatSiteText(siteContent.calculator.requestSaveFailed, { error: error.message }),
       )
     }
+  }
+
+  if (!authReady) {
+    return (
+      <div className="app app--auth-loading">
+        <p className="status-text">Sessie laden…</p>
+      </div>
+    )
   }
 
   return (
@@ -348,6 +404,7 @@ export default function App() {
         onHomeClick={() => {
           navigate('/')
           setActivePage('calculator')
+          setViewingRequest(null)
         }}
         onLogoutClick={handleLogout}
       />
@@ -380,7 +437,7 @@ export default function App() {
           />
         ) : (
         <div className="container">
-        <div className="panel stack">
+        <div className={`panel stack${isCalculatorReadOnly ? ' panel--readonly' : ''}`}>
           <div className="calculator-welcome">
             <h2>{siteContent.welcome.title}</h2>
             <p>
@@ -400,7 +457,7 @@ export default function App() {
             <select
               id="materiaal"
               value={materialIndex}
-              disabled={materials.length === 0}
+              disabled={materials.length === 0 || isCalculatorReadOnly}
               onChange={(e) => setMaterialIndex(Number(e.target.value))}
             >
               {materials.map((m, i) => (
@@ -433,9 +490,18 @@ export default function App() {
                       <input
                         type="number"
                         value={row[k]}
-                        onFocus={(e) => e.target.select()}
-                        onKeyDown={(e) => handleCoordKeyDown(e, i, k)}
-                        onChange={(e) => updateCell(i, k, e.target.value)}
+                        readOnly={isCalculatorReadOnly}
+                        disabled={isCalculatorReadOnly}
+                        className={isCalculatorReadOnly ? 'readonly-field' : undefined}
+                        onFocus={isCalculatorReadOnly ? undefined : (e) => e.target.select()}
+                        onKeyDown={
+                          isCalculatorReadOnly ? undefined : (e) => handleCoordKeyDown(e, i, k)
+                        }
+                        onChange={
+                          isCalculatorReadOnly
+                            ? undefined
+                            : (e) => updateCell(i, k, e.target.value)
+                        }
                       />
                     </td>
                   ))}
@@ -455,12 +521,29 @@ export default function App() {
           </table>
 
           <div className="row-btns">
-            <button type="button" onClick={addRow}>
-              Voeg een regel toe
-            </button>
-            <button type="button" onClick={resetFields}>
-              Reset
-            </button>
+            {isCalculatorReadOnly ? (
+              <>
+                {viewingRequest?.status ? (
+                  <span
+                    className={`request-status request-status--${viewingRequest.status}`}
+                  >
+                    {formatRequestStatus(viewingRequest.status)}
+                  </span>
+                ) : null}
+                <button type="button" className="primary" onClick={startNewCalculation}>
+                  {siteContent.calculator.newCalculation || 'Nieuwe berekening'}
+                </button>
+              </>
+            ) : (
+              <>
+                <button type="button" onClick={addRow}>
+                  Voeg een regel toe
+                </button>
+                <button type="button" onClick={resetFields}>
+                  Reset
+                </button>
+              </>
+            )}
           </div>
 
           <div>
@@ -485,7 +568,12 @@ export default function App() {
               type="number"
               min={1}
               value={aantalStuks}
-              onChange={(e) => setAantalStuks(e.target.value)}
+              readOnly={isCalculatorReadOnly}
+              disabled={isCalculatorReadOnly}
+              className={isCalculatorReadOnly ? 'readonly-field' : undefined}
+              onChange={
+                isCalculatorReadOnly ? undefined : (e) => setAantalStuks(e.target.value)
+              }
             />
           </div>
 
@@ -512,19 +600,23 @@ export default function App() {
             />
           </div>
 
-          <p className="hint">
-            {session?.role === 'customer'
-              ? siteContent.calculator.hintCustomer
-              : siteContent.calculator.hintGuest}
-          </p>
-
-          <div className="row-btns">
-            <button type="button" className="primary" onClick={submitRequest}>
+          {!isCalculatorReadOnly ? (
+            <p className="hint">
               {session?.role === 'customer'
-                ? siteContent.calculator.submitButtonCustomer
-                : siteContent.calculator.submitButtonGuest}
-            </button>
-          </div>
+                ? siteContent.calculator.hintCustomer
+                : siteContent.calculator.hintGuest}
+            </p>
+          ) : null}
+
+          {!isCalculatorReadOnly ? (
+            <div className="row-btns">
+              <button type="button" className="primary" onClick={submitRequest}>
+                {session?.role === 'customer'
+                  ? siteContent.calculator.submitButtonCustomer
+                  : siteContent.calculator.submitButtonGuest}
+              </button>
+            </div>
+          ) : null}
           {requestStatus ? <p className="status-text">{requestStatus}</p> : null}
         </div>
 

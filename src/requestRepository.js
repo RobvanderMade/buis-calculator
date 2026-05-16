@@ -1,8 +1,50 @@
-import { get, push, ref, remove, runTransaction, set, update } from 'firebase/database'
+import { get, onValue, push, ref, remove, runTransaction, set, update } from 'firebase/database'
 import { database } from './firebase'
 
 const REQUESTS_PATH = 'requests'
 const CUSTOMER_REQUESTS_PATH = 'customerRequests'
+
+export const REQUEST_STATUS_LABELS = {
+  nieuw: 'Nieuw',
+  in_behandeling: 'In behandeling',
+  in_productie: 'In productie',
+  gereed: 'Gereed',
+}
+
+/** Oude statuswaarden uit eerdere versies. */
+const LEGACY_STATUS_MAP = {
+  afgerond: 'gereed',
+}
+
+export const REQUEST_STATUS_OPTIONS = Object.entries(REQUEST_STATUS_LABELS).map(
+  ([value, label]) => ({ value, label }),
+)
+
+export function normalizeRequestStatus(status) {
+  const key = String(status || 'nieuw')
+  return LEGACY_STATUS_MAP[key] || key
+}
+
+export function formatRequestStatus(status) {
+  const normalized = normalizeRequestStatus(status)
+  return REQUEST_STATUS_LABELS[normalized] || normalized || REQUEST_STATUS_LABELS.nieuw
+}
+
+export function isRequestArchived(request) {
+  return request?.archived === true || request?.archived === 'true'
+}
+
+export function canArchiveRequest(request) {
+  return normalizeRequestStatus(request?.status) === 'gereed' && !isRequestArchived(request)
+}
+
+function sortRequests(requests) {
+  return [...requests].sort((a, b) => {
+    const dateA = a.archivedAt || a.createdAt
+    const dateB = b.archivedAt || b.createdAt
+    return String(dateB).localeCompare(String(dateA))
+  })
+}
 const REQUEST_COUNTERS_PATH = 'requestCounters'
 const SEQUENCE_COUNTER_KEY = 'sequence'
 export const FIRST_REQUEST_SEQUENCE = 1265
@@ -39,7 +81,7 @@ async function allocateRequestNumber(createdAt = new Date()) {
 function normalizeRequest(value, id) {
   return {
     id,
-    status: value.status || 'nieuw',
+    status: normalizeRequestStatus(value.status),
     createdAt: value.createdAt || '',
     customerUid: value.customerUid || '',
     customerEmail: value.customerEmail || '',
@@ -54,6 +96,8 @@ function normalizeRequest(value, id) {
     prijsPerStuk: Number(value.prijsPerStuk) || 0,
     totaalPrijs: Number(value.totaalPrijs) || 0,
     pricing: value.pricing || null,
+    archived: value.archived === true || value.archived === 'true',
+    archivedAt: value.archivedAt || '',
   }
 }
 
@@ -67,6 +111,8 @@ export async function createRequest(request) {
     ...request,
     ...numbering,
     status: 'nieuw',
+    archived: false,
+    archivedAt: '',
     createdAt,
   }
   await set(requestRef, payload)
@@ -89,9 +135,33 @@ export async function loadRequests() {
   if (!database) throw new Error('Firebase is nog niet geconfigureerd.')
 
   const snapshot = await get(ref(database, REQUESTS_PATH))
-  return Object.entries(snapshot.val() || {})
-    .map(([id, value]) => normalizeRequest(value || {}, id))
-    .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+  return sortRequests(
+    Object.entries(snapshot.val() || {}).map(([id, value]) => normalizeRequest(value || {}, id)),
+  )
+}
+
+/** Live updates voor admin-backoffice. */
+export function subscribeRequests(onUpdate) {
+  if (!database) {
+    onUpdate([])
+    return () => {}
+  }
+
+  return onValue(
+    ref(database, REQUESTS_PATH),
+    (snapshot) => {
+      const requests = sortRequests(
+        Object.entries(snapshot.val() || {}).map(([id, value]) =>
+          normalizeRequest(value || {}, id),
+        ),
+      )
+      onUpdate(requests)
+    },
+    (error) => {
+      console.warn('Aanvragen laden mislukt:', error)
+      onUpdate([])
+    },
+  )
 }
 
 export async function loadRequestsForUser(uid) {
@@ -114,14 +184,93 @@ export async function loadRequestsForUser(uid) {
     }),
   )
 
-  return results
-    .filter(Boolean)
-    .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+  return sortRequests(results.filter(Boolean))
+}
+
+/** Live updates voor klantaccount (statuswijzigingen door admin). */
+export function subscribeRequestsForUser(uid, onUpdate) {
+  if (!database || !uid) {
+    onUpdate([])
+    return () => {}
+  }
+
+  const cache = new Map()
+  const requestUnsubs = new Map()
+
+  function emit() {
+    onUpdate(sortRequests([...cache.values()]))
+  }
+
+  const indexUnsub = onValue(
+    ref(database, `${CUSTOMER_REQUESTS_PATH}/${uid}`),
+    (indexSnap) => {
+      const ids = Object.keys(indexSnap.val() || {})
+
+      for (const [id, unsub] of requestUnsubs) {
+        if (!ids.includes(id)) {
+          unsub()
+          requestUnsubs.delete(id)
+          cache.delete(id)
+        }
+      }
+
+      for (const id of ids) {
+        if (requestUnsubs.has(id)) continue
+        const unsub = onValue(
+          ref(database, `${REQUESTS_PATH}/${id}`),
+          (reqSnap) => {
+            if (reqSnap.exists()) {
+              cache.set(id, normalizeRequest(reqSnap.val(), id))
+            } else {
+              cache.delete(id)
+            }
+            emit()
+          },
+          (error) => {
+            console.warn(`Aanvraag ${id} volgen mislukt:`, error)
+          },
+        )
+        requestUnsubs.set(id, unsub)
+      }
+
+      if (ids.length === 0) emit()
+    },
+    (error) => {
+      console.warn('Klantaanvragen laden mislukt:', error)
+      onUpdate([])
+    },
+  )
+
+  return () => {
+    indexUnsub()
+    for (const unsub of requestUnsubs.values()) unsub()
+    cache.clear()
+    requestUnsubs.clear()
+  }
 }
 
 export async function updateRequestStatus(requestId, status) {
   if (!database) throw new Error('Firebase is nog niet geconfigureerd.')
   await update(ref(database, `${REQUESTS_PATH}/${requestId}`), { status })
+}
+
+export async function archiveRequest(requestId, { status } = {}) {
+  if (!database) throw new Error('Firebase is nog niet geconfigureerd.')
+  if (status != null && normalizeRequestStatus(status) !== 'gereed') {
+    throw new Error('Alleen orders met status Gereed kunnen naar de historie.')
+  }
+  await update(ref(database, `${REQUESTS_PATH}/${requestId}`), {
+    archived: true,
+    archivedAt: new Date().toISOString(),
+  })
+}
+
+export async function restoreRequestFromHistory(requestId) {
+  if (!database) throw new Error('Firebase is nog niet geconfigureerd.')
+  await update(ref(database, `${REQUESTS_PATH}/${requestId}`), {
+    archived: false,
+    archivedAt: null,
+  })
 }
 
 export async function deleteRequest(requestId, customerUid) {

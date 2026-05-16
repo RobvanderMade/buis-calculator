@@ -7,9 +7,18 @@ import {
   subscribeMaterials,
 } from './materialRepository'
 import {
+  archiveRequest,
+  canArchiveRequest,
   deleteRequest,
+  formatRequestStatus,
+  isRequestArchived,
+  normalizeRequestStatus,
+  REQUEST_STATUS_OPTIONS,
   loadRequests,
   loadRequestsForUser,
+  restoreRequestFromHistory,
+  subscribeRequests,
+  subscribeRequestsForUser,
   updateRequestStatus,
 } from './requestRepository'
 import { DEFAULT_PRICING } from './pricing'
@@ -52,6 +61,7 @@ export default function Backoffice({ user, role, customerProfile, onLogout, onOp
   const [pricing, setPricing] = useState(DEFAULT_PRICING)
   const [pricingSource, setPricingSource] = useState('')
   const [activeTab, setActiveTab] = useState('requests')
+  const [requestListFilter, setRequestListFilter] = useState('open')
 
   const isAdmin = role === 'admin'
 
@@ -99,24 +109,28 @@ export default function Backoffice({ user, role, customerProfile, onLogout, onOp
   }
 
   useEffect(() => {
-    if (!isAdmin) {
-      refreshBackofficeData()
-      return undefined
+    const unsubscribeRequests = isAdmin
+      ? subscribeRequests(setRequests)
+      : subscribeRequestsForUser(user.uid, setRequests)
+
+    if (isAdmin) {
+      const unsubscribeMaterials = subscribeMaterials(applyMaterialResult, { seedIfEmpty: false })
+      const unsubscribeContent = subscribeSiteContent(applySiteContentResult, { seedIfEmpty: false })
+      const unsubscribePricing = subscribePricing(applyPricingResult, { seedIfEmpty: false })
+
+      return () => {
+        unsubscribeRequests()
+        unsubscribeMaterials()
+        unsubscribeContent()
+        unsubscribePricing()
+      }
     }
 
-    const unsubscribeMaterials = subscribeMaterials(applyMaterialResult, { seedIfEmpty: false })
-    const unsubscribeContent = subscribeSiteContent(applySiteContentResult, { seedIfEmpty: false })
-    const unsubscribePricing = subscribePricing(applyPricingResult, { seedIfEmpty: false })
-
-    loadRequests()
-      .then(setRequests)
+    loadMaterials()
+      .then(applyMaterialResult)
       .catch((error) => setMessage(error.message))
 
-    return () => {
-      unsubscribeMaterials()
-      unsubscribeContent()
-      unsubscribePricing()
-    }
+    return unsubscribeRequests
   }, [isAdmin, user.uid])
 
   function editMaterial(material) {
@@ -200,7 +214,6 @@ export default function Backoffice({ user, role, customerProfile, onLogout, onOp
     setMessage('')
     try {
       await updateRequestStatus(requestId, status)
-      await refreshBackofficeData()
     } catch (error) {
       setMessage(`Status aanpassen mislukt: ${error.message}`)
     }
@@ -219,17 +232,63 @@ export default function Backoffice({ user, role, customerProfile, onLogout, onOp
     }
   }
 
-  const requestCountLabel = useMemo(
-    () => `${requests.length} ${requests.length === 1 ? 'aanvraag' : 'aanvragen'}`,
-    [requests.length],
+  async function handleArchiveRequest(request) {
+    if (!isAdmin) return
+    if (isRequestArchived(request)) return
+    if (normalizeRequestStatus(request.status) !== 'gereed') {
+      setMessage('Alleen orders met status Gereed kunnen naar de historie.')
+      return
+    }
+    if (!window.confirm('Deze order naar de historie plaatsen?')) return
+    setMessage('')
+    try {
+      await archiveRequest(request.id, { status: request.status })
+      setRequestListFilter('history')
+      setMessage('Order staat in de historie.')
+    } catch (error) {
+      setMessage(error.message)
+    }
+  }
+
+  async function handleRestoreRequest(request) {
+    if (!isAdmin) return
+    if (!isRequestArchived(request)) return
+    setMessage('')
+    try {
+      await restoreRequestFromHistory(request.id)
+      setMessage('Order staat weer bij open orders.')
+      setRequestListFilter('open')
+    } catch (error) {
+      setMessage(`Order terugzetten mislukt: ${error.message}`)
+    }
+  }
+
+  const openRequests = useMemo(
+    () => requests.filter((request) => !isRequestArchived(request)),
+    [requests],
   )
-  const visibleRequests = useMemo(
-    () => (isAdmin ? requests : requests.filter((request) => request.customerUid === user.uid)),
-    [isAdmin, requests, user.uid],
+  const historyRequests = useMemo(
+    () => requests.filter((request) => isRequestArchived(request)),
+    [requests],
   )
-  const visibleRequestCountLabel = `${visibleRequests.length} ${
-    visibleRequests.length === 1 ? 'aanvraag' : 'aanvragen'
-  }`
+
+  const visibleRequests = useMemo(() => {
+    if (isAdmin) {
+      return requestListFilter === 'history' ? historyRequests : openRequests
+    }
+    return requests.filter((request) => request.customerUid === user.uid)
+  }, [isAdmin, requestListFilter, historyRequests, openRequests, requests, user.uid])
+
+  const visibleRequestCountLabel = useMemo(() => {
+    if (isAdmin) {
+      const count = visibleRequests.length
+      const scope = requestListFilter === 'history' ? 'in historie' : 'open'
+      return `${count} ${count === 1 ? 'order' : 'orders'} ${scope}`
+    }
+    return `${visibleRequests.length} ${
+      visibleRequests.length === 1 ? 'aanvraag' : 'aanvragen'
+    }`
+  }, [isAdmin, requestListFilter, visibleRequests.length])
 
   function handleRequestCardActivate(request) {
     if (typeof onOpenRequestInCalculator !== 'function') return
@@ -264,7 +323,8 @@ export default function Backoffice({ user, role, customerProfile, onLogout, onOp
           className={activeTab === 'requests' ? 'view-active' : ''}
           onClick={() => setActiveTab('requests')}
         >
-          Aanvragen ({isAdmin ? requests.length : visibleRequests.length})
+          Aanvragen (
+          {isAdmin ? `${openRequests.length} open` : visibleRequests.length})
         </button>
         {isAdmin ? (
           <button
@@ -337,8 +397,32 @@ export default function Backoffice({ user, role, customerProfile, onLogout, onOp
 
       {(!isAdmin || activeTab === 'requests') && (
         <section className="panel stack">
-          <h3>{isAdmin ? requestCountLabel : visibleRequestCountLabel}</h3>
-          {visibleRequests.length === 0 ? <p className="hint">Nog geen aanvragen.</p> : null}
+          <h3>{visibleRequestCountLabel}</h3>
+          {isAdmin ? (
+            <div className="row-btns request-list-filter">
+              <button
+                type="button"
+                className={requestListFilter === 'open' ? 'view-active' : ''}
+                onClick={() => setRequestListFilter('open')}
+              >
+                Open orders ({openRequests.length})
+              </button>
+              <button
+                type="button"
+                className={requestListFilter === 'history' ? 'view-active' : ''}
+                onClick={() => setRequestListFilter('history')}
+              >
+                Afgehandelde orders ({historyRequests.length})
+              </button>
+            </div>
+          ) : null}
+          {visibleRequests.length === 0 ? (
+            <p className="hint">
+              {isAdmin && requestListFilter === 'history'
+                ? 'Geen orders in de historie.'
+                : 'Nog geen aanvragen.'}
+            </p>
+          ) : null}
           <div className="card-list">
             {visibleRequests.map((request) => (
               <article
@@ -417,22 +501,59 @@ export default function Backoffice({ user, role, customerProfile, onLogout, onOp
                     onKeyDown={(e) => e.stopPropagation()}
                     role="presentation"
                   >
-                    <label>
-                      Status
-                      <select
-                        value={request.status}
-                        onChange={(event) => handleStatusChange(request.id, event.target.value)}
-                      >
-                        <option value="nieuw">Nieuw</option>
-                        <option value="in_behandeling">In behandeling</option>
-                        <option value="afgerond">Afgerond</option>
-                      </select>
-                    </label>
+                    {isRequestArchived(request) ? (
+                      <p className="request-status-line">
+                        <span
+                          className={`request-status request-status--${normalizeRequestStatus(request.status)}`}
+                        >
+                          {formatRequestStatus(request.status)}
+                        </span>
+                        {request.archivedAt ? (
+                          <span className="hint">
+                            In historie sinds {formatDate(request.archivedAt)}
+                          </span>
+                        ) : null}
+                      </p>
+                    ) : (
+                      <label>
+                        Status
+                        <select
+                          value={normalizeRequestStatus(request.status)}
+                          onChange={(event) =>
+                            handleStatusChange(request.id, event.target.value)
+                          }
+                        >
+                          {REQUEST_STATUS_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
+                    <div className="row-btns data-card__admin-btns">
+                      {canArchiveRequest(request) ? (
+                        <button type="button" onClick={() => handleArchiveRequest(request)}>
+                          Naar historie
+                        </button>
+                      ) : null}
+                      {isRequestArchived(request) ? (
+                        <button type="button" onClick={() => handleRestoreRequest(request)}>
+                          Terug naar open
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
                 ) : (
-                  <p>
-                    {request.requestNumber ? `${request.requestNumber} · ` : ''}
-                    Status: {request.status}
+                  <p className="request-status-line">
+                    {request.requestNumber ? (
+                      <span className="request-number">{request.requestNumber}</span>
+                    ) : null}
+                    <span
+                      className={`request-status request-status--${normalizeRequestStatus(request.status)}`}
+                    >
+                      {formatRequestStatus(request.status)}
+                    </span>
                   </p>
                 )}
                 {onOpenRequestInCalculator ? (

@@ -19,7 +19,8 @@ export const DEFAULT_SITE_CONTENT = {
     requestLoaded:
       'Aanvraag geladen in de calculator. Je kunt gegevens aanpassen en opnieuw versturen.',
     requestOpened:
-      'Deze aanvraag staat in de calculator. Pas desgewijst aan en verstuur opnieuw indien nodig.',
+      'Order {requestNumber} — alleen bekijken. De gegevens kunnen niet meer worden gewijzigd.',
+    newCalculation: 'Nieuwe berekening',
     loginRequired:
       'Maak eerst een My BendR account aan of log in om een aanvraag te versturen.',
     profileRequired:
