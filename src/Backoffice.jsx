@@ -36,6 +36,8 @@ import {
   SITE_CONTENT_LOCALE_EN,
   SITE_CONTENT_LOCALE_NL,
   createDefaultContentBundle,
+  getDefaultNlSiteContent,
+  normalizeContentBundle,
   saveSiteContent,
   subscribeSiteContent,
 } from './siteContentRepository'
@@ -86,7 +88,7 @@ export default function Backoffice({
   const [materialsHint, setMaterialsHint] = useState('')
   const [requests, setRequests] = useState([])
   const [editing, setEditing] = useState(emptyMaterial)
-  const [siteContentBundle, setSiteContentBundle] = useState(createDefaultContentBundle)
+  const [siteContentBundle, setSiteContentBundle] = useState(() => createDefaultContentBundle())
   const [siteContentEditLocale, setSiteContentEditLocale] = useState(SITE_CONTENT_LOCALE_NL)
   const [siteContentSource, setSiteContentSource] = useState('')
   const [pricing, setPricing] = useState(DEFAULT_PRICING)
@@ -162,13 +164,34 @@ export default function Backoffice({
   }, [])
 
   function updateSiteContentField(section, key, value) {
-    setSiteContentBundle((prev) => ({
-      ...prev,
-      [siteContentEditLocale]: {
-        ...prev[siteContentEditLocale],
-        [section]: { ...prev[siteContentEditLocale][section], [key]: value },
-      },
-    }))
+    const locale = siteContentEditLocale
+    setSiteContentBundle((prev) => {
+      const defaults = createDefaultContentBundle()
+      const current = prev[locale] ?? defaults[locale]
+      return {
+        [SITE_CONTENT_LOCALE_NL]:
+          prev[SITE_CONTENT_LOCALE_NL] ?? defaults[SITE_CONTENT_LOCALE_NL],
+        [SITE_CONTENT_LOCALE_EN]:
+          prev[SITE_CONTENT_LOCALE_EN] ?? defaults[SITE_CONTENT_LOCALE_EN],
+        [locale]: {
+          ...current,
+          [section]: { ...current[section], [key]: value },
+        },
+      }
+    })
+  }
+
+  function switchSiteContentEditLocale(locale) {
+    setSiteContentEditLocale(locale)
+    setSiteContentBundle((prev) => {
+      const defaults = createDefaultContentBundle()
+      return {
+        [SITE_CONTENT_LOCALE_NL]:
+          prev[SITE_CONTENT_LOCALE_NL] ?? defaults[SITE_CONTENT_LOCALE_NL],
+        [SITE_CONTENT_LOCALE_EN]:
+          prev[SITE_CONTENT_LOCALE_EN] ?? defaults[SITE_CONTENT_LOCALE_EN],
+      }
+    })
   }
 
   function updatePricingField(key, value) {
@@ -275,10 +298,51 @@ export default function Backoffice({
     if (!isAdmin) return
     setMessage('')
     try {
-      await saveSiteContent(siteContent)
-      setMessage('Teksten en footer opgeslagen in Firebase.')
+      const defaults = createDefaultContentBundle()
+      await saveSiteContent({
+        [SITE_CONTENT_LOCALE_NL]:
+          siteContentBundle[SITE_CONTENT_LOCALE_NL] ?? defaults[SITE_CONTENT_LOCALE_NL],
+        [SITE_CONTENT_LOCALE_EN]:
+          siteContentBundle[SITE_CONTENT_LOCALE_EN] ?? defaults[SITE_CONTENT_LOCALE_EN],
+      })
+      setMessage('Teksten (NL + English) opgeslagen in Firebase.')
     } catch (error) {
       setMessage(`Teksten opslaan mislukt: ${error.message}`)
+    }
+  }
+
+  function handleLoadNlDefaults() {
+    const nl = getDefaultNlSiteContent()
+    setSiteContentBundle((prev) => {
+      const defaults = createDefaultContentBundle()
+      return {
+        [SITE_CONTENT_LOCALE_NL]: nl,
+        [SITE_CONTENT_LOCALE_EN]:
+          prev[SITE_CONTENT_LOCALE_EN] ?? defaults[SITE_CONTENT_LOCALE_EN],
+      }
+    })
+    setSiteContentEditLocale(SITE_CONTENT_LOCALE_NL)
+    setMessage('Nederlandse standaardteksten geladen. Controleer en klik op Teksten opslaan.')
+  }
+
+  async function handleRestoreNlAndSave() {
+    if (!isAdmin) return
+    setMessage('')
+    try {
+      const defaults = createDefaultContentBundle()
+      const toSave = {
+        [SITE_CONTENT_LOCALE_NL]: getDefaultNlSiteContent(),
+        [SITE_CONTENT_LOCALE_EN]:
+          siteContentBundle[SITE_CONTENT_LOCALE_EN] ?? defaults[SITE_CONTENT_LOCALE_EN],
+      }
+      const saved = await saveSiteContent(toSave)
+      setSiteContentBundle(saved)
+      setSiteContentEditLocale(SITE_CONTENT_LOCALE_NL)
+      setMessage(
+        'Nederlandse standaardteksten zijn hersteld en opgeslagen. English (UK) is ongewijzigd.',
+      )
+    } catch (error) {
+      setMessage(`Nederlands herstellen mislukt: ${error.message}`)
     }
   }
 
@@ -1145,18 +1209,30 @@ export default function Backoffice({
             <button
               type="button"
               className={siteContentEditLocale === SITE_CONTENT_LOCALE_NL ? 'view-active' : ''}
-              onClick={() => setSiteContentEditLocale(SITE_CONTENT_LOCALE_NL)}
+              onClick={() => switchSiteContentEditLocale(SITE_CONTENT_LOCALE_NL)}
             >
               Nederlands
             </button>
             <button
               type="button"
               className={siteContentEditLocale === SITE_CONTENT_LOCALE_EN ? 'view-active' : ''}
-              onClick={() => setSiteContentEditLocale(SITE_CONTENT_LOCALE_EN)}
+              onClick={() => switchSiteContentEditLocale(SITE_CONTENT_LOCALE_EN)}
             >
               English (UK)
             </button>
           </div>
+          <div className="row-btns">
+            <button type="button" onClick={handleLoadNlDefaults}>
+              NL-standaardteksten laden
+            </button>
+            <button type="button" className="primary" onClick={handleRestoreNlAndSave}>
+              NL herstellen en opslaan
+            </button>
+          </div>
+          <p className="hint">
+            Gebruik &quot;NL herstellen en opslaan&quot; om alle Nederlandse teksten (inclusief
+            startpagina) terug te zetten. English (UK) blijft zoals het nu in Firebase staat.
+          </p>
           <form className="site-content-form" onSubmit={handleSaveSiteContent}>
             <fieldset className="site-content-form__group">
               <legend>Welkomsttekst calculator</legend>

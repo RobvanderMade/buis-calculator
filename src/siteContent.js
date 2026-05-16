@@ -7,7 +7,7 @@ export function formatSiteText(template, vars = {}) {
   })
 }
 
-/** Standaardteksten voor openingspagina, calculator-welkom en site-footer */
+/** Standaardteksten Nederlands — uitgangspunt voor siteContent/nl in Firebase. */
 export const DEFAULT_SITE_CONTENT = {
   home: {
     greetingLoggedIn: 'Welkom terug, {name}',
@@ -25,31 +25,31 @@ export const DEFAULT_SITE_CONTENT = {
     process1Label: 'Berekenen',
     process1Text: 'Kies materiaal, vul X/Y/Z in en controleer in 2D en 3D.',
     process2Label: 'Aanvraag',
-    process2Text: 'Verstuur je berekening met My BendR naar onze engineers.',
+    process2Text: 'Verstuur je berekening via My BendR naar onze engineers.',
     process3Label: 'In behandeling',
     process3Text: 'Wij controleren je order en sturen een orderbevestiging.',
     process4Label: 'In productie',
-    process4Text: 'Je buis wordt gebogen volgens de goedgekeurde specificaties.',
+    process4Text: 'Je buis wordt gebogen volgens de goedgekeurde specificatie.',
     process5Label: 'Gereed',
-    process5Text: 'Je ontvangt bericht zodra je order klaar is voor afhalen of levering.',
-    bottomText:
-      'Probeer de calculator vrijblijvend.',
+    process5Text:
+      'Je ontvangt bericht zodra je order klaar is voor afhalen of levering.',
+    bottomText: 'Probeer de calculator vrijblijvend.',
     ctaTry: 'Probeer',
   },
   welcome: {
     title: 'Welkom bij de BendR buis-calculator',
     body:
-      'kies je materiaal en vul de regels in met de gewenste afmetingen (X, Y en Z in mm). De tekening en gestrekte lengte worden direct berekend.',
+      'Kies je materiaal en vul de regels in met de gewenste afmetingen (X, Y en Z in mm). De tekening en gestrekte lengte worden direct berekend.',
   },
   calculator: {
     greeting: 'Hoi {name},',
     requestLoaded:
-      'Aanvraag geladen in de calculator. Je kunt gegevens aanpassen en opnieuw versturen.',
+      'Aanvraag geladen in de calculator. Je kunt de gegevens aanpassen en opnieuw versturen.',
     requestOpened:
       'Order {requestNumber} — alleen bekijken. De gegevens kunnen niet meer worden gewijzigd.',
     newCalculation: 'Nieuwe berekening',
     loginRequired:
-      'Maak eerst een My BendR account aan of log in om een aanvraag te versturen.',
+      'Maak eerst een My BendR-account aan of log in om een aanvraag te versturen.',
     profileRequired:
       'Vul eerst je accountgegevens aan voordat je een aanvraag verstuurt.',
     requestSuccessWithNumber:
@@ -59,7 +59,7 @@ export const DEFAULT_SITE_CONTENT = {
     requestSaveFailed: 'Aanvraag opslaan mislukt: {error}',
     hintCustomer: 'Klaar met invoeren? Verstuur je aanvraag hieronder.',
     hintGuest:
-      'Inloggen met een My BendR account is verplicht om een aanvraag te versturen.',
+      'Inloggen met een My BendR-account is verplicht om een aanvraag te versturen.',
     submitButtonCustomer: 'Aanvraag aanmaken',
     submitButtonGuest: 'Inloggen om aanvraag te versturen',
   },

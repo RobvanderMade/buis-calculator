@@ -57,6 +57,11 @@ export function createDefaultContentBundle() {
   }
 }
 
+/** Alleen Nederlandse standaardteksten (bijv. herstel na per ongeluk Engels onder nl). */
+export function getDefaultNlSiteContent() {
+  return normalizeSiteContent(null, DEFAULT_SITE_CONTENT)
+}
+
 /** Oude Firebase-structuur: home/welcome/calculator/footer op rootniveau. */
 function isLegacyFlatContent(value) {
   if (!value || typeof value !== 'object') return false
@@ -64,20 +69,33 @@ function isLegacyFlatContent(value) {
   return Boolean(value.welcome || value.home || value.calculator || value.footer)
 }
 
-/** Normaliseert ruwe Firebase-data naar { nl, en-GB }. */
+/** Normaliseert ruwe Firebase-data naar { nl, en-GB } zonder locales te vermengen. */
 export function normalizeContentBundle(value) {
+  if (!value || typeof value !== 'object') {
+    return createDefaultContentBundle()
+  }
+
   if (isLegacyFlatContent(value)) {
     return {
       [SITE_CONTENT_LOCALE_NL]: normalizeSiteContent(value, DEFAULT_SITE_CONTENT),
-      [SITE_CONTENT_LOCALE_EN]: normalizeSiteContent(value?.[SITE_CONTENT_LOCALE_EN], DEFAULT_SITE_CONTENT_EN),
+      [SITE_CONTENT_LOCALE_EN]: normalizeSiteContent(null, DEFAULT_SITE_CONTENT_EN),
     }
   }
 
-  const nlSource = value?.[SITE_CONTENT_LOCALE_NL] ?? value
+  const hasNl = Object.prototype.hasOwnProperty.call(value, SITE_CONTENT_LOCALE_NL)
+  const hasEn = Object.prototype.hasOwnProperty.call(value, SITE_CONTENT_LOCALE_EN)
+
+  if (!hasNl && !hasEn) {
+    return createDefaultContentBundle()
+  }
+
   return {
-    [SITE_CONTENT_LOCALE_NL]: normalizeSiteContent(nlSource, DEFAULT_SITE_CONTENT),
+    [SITE_CONTENT_LOCALE_NL]: normalizeSiteContent(
+      hasNl ? value[SITE_CONTENT_LOCALE_NL] : null,
+      DEFAULT_SITE_CONTENT,
+    ),
     [SITE_CONTENT_LOCALE_EN]: normalizeSiteContent(
-      value?.[SITE_CONTENT_LOCALE_EN],
+      hasEn ? value[SITE_CONTENT_LOCALE_EN] : null,
       DEFAULT_SITE_CONTENT_EN,
     ),
   }
@@ -176,7 +194,19 @@ export function subscribeSiteContent(onUpdate, { seedIfEmpty = false } = {}) {
 
 export async function saveSiteContent(bundle) {
   if (!database) throw new Error('Firebase is nog niet geconfigureerd.')
-  const normalized = normalizeContentBundle(bundle)
+
+  const defaults = createDefaultContentBundle()
+  const normalized = {
+    [SITE_CONTENT_LOCALE_NL]: normalizeSiteContent(
+      bundle?.[SITE_CONTENT_LOCALE_NL] ?? defaults[SITE_CONTENT_LOCALE_NL],
+      DEFAULT_SITE_CONTENT,
+    ),
+    [SITE_CONTENT_LOCALE_EN]: normalizeSiteContent(
+      bundle?.[SITE_CONTENT_LOCALE_EN] ?? defaults[SITE_CONTENT_LOCALE_EN],
+      DEFAULT_SITE_CONTENT_EN,
+    ),
+  }
+
   await set(ref(database, SITE_CONTENT_PATH), normalized)
   return normalized
 }
