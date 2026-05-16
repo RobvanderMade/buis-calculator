@@ -13,7 +13,7 @@ export const DEFAULT_SITE_CONTENT = {
     greetingLoggedIn: 'Welkom terug, {name}',
     welcomeTitle: 'Welkom bij BendR',
     welcomeText:
-      'De online buisbuigen-calculator voor snelle berekeningen, visuele controle en eenvoudig aanvragen bij onze engineers.',
+      'De online buisbuigen-calculator voor stalen buis. Snelle berekeningen, visuele controle en eenvoudig aanvragen bij onze engineers.',
     photo1Src: 'home/buigen-1.png',
     photo1Alt: 'Buis buigen in de werkplaats',
     photo2Src: 'home/buigen-2.png',
