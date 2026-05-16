@@ -4,6 +4,7 @@ import {
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
 } from 'firebase/auth'
+import { formatAuthError } from './authErrors.js'
 import { auth } from './firebase'
 import {
   emptyCustomerProfile,
@@ -98,7 +99,9 @@ export default function LoginPanel({
       await onLogin({ user: result.user, role, customerProfile })
       setPassword('')
     } catch (error) {
-      setMessage(`${mode === 'register' ? 'Account aanmaken' : mode === 'reset' ? 'Reset' : 'Inloggen'} mislukt: ${error.message}`)
+      const action =
+        mode === 'register' ? 'Account aanmaken' : mode === 'reset' ? 'Reset' : 'Inloggen'
+      setMessage(`${action} mislukt: ${formatAuthError(error)}`)
     }
   }
 
