@@ -32,6 +32,8 @@ export default {
     calculator: 'Calculator',
     goHome: 'Go to home page',
     adminPrefix: 'Admin: ',
+    info: 'Information',
+    infoDialog: 'About BendR',
   },
   home: {
     enlargePhoto: 'Enlarged photo',

@@ -23,11 +23,17 @@ function normalizeCalculator(calculator, defaults) {
 }
 
 export function normalizeSiteContent(value, defaults = DEFAULT_SITE_CONTENT) {
+  const info = value?.info || {}
   const welcome = value?.welcome || {}
   const footer = value?.footer || {}
 
   return {
     home: normalizeStringMap(value?.home, defaults.home),
+    info: {
+      title: str(info.title, defaults.info.title),
+      intro: str(info.intro, defaults.info.intro),
+      body: str(info.body, defaults.info.body),
+    },
     welcome: {
       title: str(welcome.title, defaults.welcome.title),
       body: str(welcome.body, defaults.welcome.body),

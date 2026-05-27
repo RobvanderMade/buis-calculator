@@ -26,6 +26,13 @@ export const DEFAULT_SITE_CONTENT_EN = {
     bottomText: 'Try the calculator with no obligation.',
     ctaTry: 'Try it',
   },
+  info: {
+    title: 'About BendR',
+    intro:
+      'The online tube bending calculator for fast calculations, visual checks and easy requests to our engineers.',
+    body:
+      'Choose your material and fill in the rows with the required dimensions (X, Y and Z in mm). The drawing and developed length are calculated instantly. With a My BendR account you can submit your calculation as a request to our engineers.',
+  },
   welcome: {
     title: 'Welcome to the BendR tube calculator',
     body:

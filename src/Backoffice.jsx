@@ -1235,6 +1235,46 @@ export default function Backoffice({
           </p>
           <form className="site-content-form" onSubmit={handleSaveSiteContent}>
             <fieldset className="site-content-form__group">
+              <legend>Info-popup (header)</legend>
+              <p className="hint">
+                Teksten in de popup achter de info-knop in de header (op alle pagina&apos;s).
+              </p>
+              <label>
+                Titel
+                <input
+                  type="text"
+                  value={siteContent.info.title}
+                  onChange={(event) =>
+                    updateSiteContentField('info', 'title', event.target.value)
+                  }
+                  required
+                />
+              </label>
+              <label className="site-content-form__full">
+                Introductie
+                <textarea
+                  rows={3}
+                  value={siteContent.info.intro}
+                  onChange={(event) =>
+                    updateSiteContentField('info', 'intro', event.target.value)
+                  }
+                  required
+                />
+              </label>
+              <label className="site-content-form__full">
+                Uitleg
+                <textarea
+                  rows={4}
+                  value={siteContent.info.body}
+                  onChange={(event) =>
+                    updateSiteContentField('info', 'body', event.target.value)
+                  }
+                  required
+                />
+              </label>
+            </fieldset>
+
+            <fieldset className="site-content-form__group">
               <legend>Welkomsttekst calculator</legend>
               <label>
                 Titel

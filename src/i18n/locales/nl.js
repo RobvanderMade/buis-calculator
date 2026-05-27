@@ -32,6 +32,8 @@ export default {
     calculator: 'Calculator',
     goHome: 'Naar startpagina',
     adminPrefix: 'Admin: ',
+    info: 'Informatie',
+    infoDialog: 'Over BendR',
   },
   home: {
     enlargePhoto: 'Vergrote foto',

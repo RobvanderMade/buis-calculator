@@ -36,6 +36,13 @@ export const DEFAULT_SITE_CONTENT = {
     bottomText: 'Probeer de calculator vrijblijvend.',
     ctaTry: 'Probeer',
   },
+  info: {
+    title: 'Over BendR',
+    intro:
+      'De online buisbuigen-calculator voor stalen buis. Snelle berekeningen, visuele controle en eenvoudig aanvragen bij onze engineers.',
+    body:
+      'Kies je materiaal en vul de regels in met de gewenste afmetingen (X, Y en Z in mm). De tekening en gestrekte lengte worden direct berekend. Met een My BendR-account verstuur je je berekening als aanvraag naar onze engineers.',
+  },
   welcome: {
     title: 'Welkom bij de BendR buis-calculator',
     body:

@@ -439,6 +439,9 @@ function AppContent({ path, setPath, page }) {
           setViewingRequest(null)
         }}
         onLogoutClick={handleLogout}
+        infoTitle={siteContent.info.title}
+        infoIntro={siteContent.info.intro}
+        infoBody={siteContent.info.body}
       />
       <div className="site-main">
         {isCalculatorPage && computed.error ? (
