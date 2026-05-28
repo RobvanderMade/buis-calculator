@@ -61,13 +61,6 @@ function normalizeCoordInput(prev, raw) {
   return filtered
 }
 
-function toggleCoordSign(row) {
-  const value = String(row)
-  if (value === '' || value === '0') return '-'
-  if (value.startsWith('-')) return value.slice(1) || '0'
-  return `-${value}`
-}
-
 function rowsFromRequestLines(lines) {
   const raw = Array.isArray(lines) ? lines : []
   if (raw.length === 0) return initialRows()
@@ -560,39 +553,26 @@ function AppContent({ path, setPath, page }) {
                   <td>{t('calculator.rowN', { n: i + 1 })}</td>
                   {(['x', 'y', 'z']).map((k) => (
                     <td key={k}>
-                      <div className="coord-input-wrap">
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          autoComplete="off"
-                          autoCorrect="off"
-                          spellCheck={false}
-                          value={row[k]}
-                          readOnly={isCalculatorReadOnly}
-                          disabled={isCalculatorReadOnly}
-                          className={isCalculatorReadOnly ? 'readonly-field' : undefined}
-                          onFocus={isCalculatorReadOnly ? undefined : (e) => e.target.select()}
-                          onKeyDown={
-                            isCalculatorReadOnly ? undefined : (e) => handleCoordKeyDown(e, i, k)
-                          }
-                          onChange={
-                            isCalculatorReadOnly
-                              ? undefined
-                              : (e) => updateCell(i, k, e.target.value)
-                          }
-                        />
-                        {isCalculatorReadOnly ? null : (
-                          <button
-                            type="button"
-                            className="coord-minus-btn"
-                            tabIndex={-1}
-                            aria-label={t('calculator.toggleSign')}
-                            onClick={() => updateCell(i, k, toggleCoordSign(row[k]))}
-                          >
-                            −
-                          </button>
-                        )}
-                      </div>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="off"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        value={row[k]}
+                        readOnly={isCalculatorReadOnly}
+                        disabled={isCalculatorReadOnly}
+                        className={isCalculatorReadOnly ? 'readonly-field' : undefined}
+                        onFocus={isCalculatorReadOnly ? undefined : (e) => e.target.select()}
+                        onKeyDown={
+                          isCalculatorReadOnly ? undefined : (e) => handleCoordKeyDown(e, i, k)
+                        }
+                        onChange={
+                          isCalculatorReadOnly
+                            ? undefined
+                            : (e) => updateCell(i, k, e.target.value)
+                        }
+                      />
                     </td>
                   ))}
                   <td>{segmentLens[i].toFixed(2)}</td>

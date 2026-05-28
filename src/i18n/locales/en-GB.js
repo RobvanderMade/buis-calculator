@@ -65,7 +65,6 @@ export default {
     coordZ: 'Z (mm)',
     okColumn: 'OK',
     rowN: 'Row {n}',
-    toggleSign: 'Toggle sign (positive/negative)',
   },
   login: {
     title: 'My BendR',
