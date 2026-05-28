@@ -6,13 +6,7 @@ const logoSrc = `${import.meta.env.BASE_URL}logo_header.png`
 
 function LogoMark() {
   return (
-    <img
-      className="site-header__logo-img"
-      src={logoSrc}
-      alt="IAM BendR"
-      height={84}
-      decoding="async"
-    />
+    <img className="site-header__logo-img" src={logoSrc} alt="IAM BendR" decoding="async" />
   )
 }
 
@@ -160,8 +154,16 @@ export default function SiteHeader({
             </span>
           ) : null}
           {showBackButton ? (
-            <button type="button" className="site-header__login" onClick={onHomeClick}>
-              <span>{t('common.back')}</span>
+            <button
+              type="button"
+              className="site-header__login site-header__back"
+              onClick={onHomeClick}
+              aria-label={t('common.back')}
+            >
+              <span className="site-header__back-short" aria-hidden="true">
+                ←
+              </span>
+              <span className="site-header__back-label">{t('common.back')}</span>
             </button>
           ) : null}
           <div className="site-header__account">

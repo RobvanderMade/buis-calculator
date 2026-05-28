@@ -50,10 +50,22 @@ function isCoordZero(value) {
 function normalizeCoordInput(prev, raw) {
   const next = String(raw)
   if (next === '' || next === '-') return next
-  if (isCoordZero(prev) && /^-?0\d/.test(next)) {
-    return String(Number.parseInt(next, 10))
+
+  const match = next.match(/^-?\d*/)
+  const filtered = match ? match[0] : ''
+  if (filtered === '' || filtered === '-') return filtered
+
+  if (isCoordZero(prev) && /^-?0\d/.test(filtered)) {
+    return String(Number.parseInt(filtered, 10))
   }
-  return raw
+  return filtered
+}
+
+function toggleCoordSign(row) {
+  const value = String(row)
+  if (value === '' || value === '0') return '-'
+  if (value.startsWith('-')) return value.slice(1) || '0'
+  return `-${value}`
 }
 
 function rowsFromRequestLines(lines) {
@@ -548,22 +560,39 @@ function AppContent({ path, setPath, page }) {
                   <td>{t('calculator.rowN', { n: i + 1 })}</td>
                   {(['x', 'y', 'z']).map((k) => (
                     <td key={k}>
-                      <input
-                        type="number"
-                        value={row[k]}
-                        readOnly={isCalculatorReadOnly}
-                        disabled={isCalculatorReadOnly}
-                        className={isCalculatorReadOnly ? 'readonly-field' : undefined}
-                        onFocus={isCalculatorReadOnly ? undefined : (e) => e.target.select()}
-                        onKeyDown={
-                          isCalculatorReadOnly ? undefined : (e) => handleCoordKeyDown(e, i, k)
-                        }
-                        onChange={
-                          isCalculatorReadOnly
-                            ? undefined
-                            : (e) => updateCell(i, k, e.target.value)
-                        }
-                      />
+                      <div className="coord-input-wrap">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          autoComplete="off"
+                          autoCorrect="off"
+                          spellCheck={false}
+                          value={row[k]}
+                          readOnly={isCalculatorReadOnly}
+                          disabled={isCalculatorReadOnly}
+                          className={isCalculatorReadOnly ? 'readonly-field' : undefined}
+                          onFocus={isCalculatorReadOnly ? undefined : (e) => e.target.select()}
+                          onKeyDown={
+                            isCalculatorReadOnly ? undefined : (e) => handleCoordKeyDown(e, i, k)
+                          }
+                          onChange={
+                            isCalculatorReadOnly
+                              ? undefined
+                              : (e) => updateCell(i, k, e.target.value)
+                          }
+                        />
+                        {isCalculatorReadOnly ? null : (
+                          <button
+                            type="button"
+                            className="coord-minus-btn"
+                            tabIndex={-1}
+                            aria-label={t('calculator.toggleSign')}
+                            onClick={() => updateCell(i, k, toggleCoordSign(row[k]))}
+                          >
+                            −
+                          </button>
+                        )}
+                      </div>
                     </td>
                   ))}
                   <td>{segmentLens[i].toFixed(2)}</td>
