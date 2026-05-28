@@ -554,6 +554,10 @@ body.modal-open {
   line-height: 1.6;
 }
 
+.info-modal__paragraph + .info-modal__paragraph {
+  margin-top: 0.8rem;
+}
+
 .site-header__actions {
   display: flex;
   align-items: center;

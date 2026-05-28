@@ -116,6 +116,8 @@ export default {
   requests: {
     status: 'Status',
     noneYet: 'Nog geen aanvragen.',
+    newRequestAlertOne: 'Nieuwe aanvraag binnengekomen.',
+    newRequestAlertMany: '{count} nieuwe aanvragen binnengekomen.',
     length: 'Lengte',
     quantity: 'Aantal',
     total: 'Totaal',

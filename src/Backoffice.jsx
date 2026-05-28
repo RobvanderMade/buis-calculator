@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   loadCustomers,
   normalizeCustomerProfile,
@@ -99,9 +99,43 @@ export default function Backoffice({
   const [customersSource, setCustomersSource] = useState('')
   const [customerSearch, setCustomerSearch] = useState('')
   const [expandedCustomerUid, setExpandedCustomerUid] = useState(null)
+  const knownRequestIdsRef = useRef(new Set())
+  const hasSeenInitialAdminRequestsRef = useRef(false)
 
   const isAdmin = role === 'admin'
   const { t } = useI18n()
+
+  useEffect(() => {
+    if (!isAdmin) {
+      knownRequestIdsRef.current = new Set()
+      hasSeenInitialAdminRequestsRef.current = false
+      return
+    }
+
+    const knownIds = knownRequestIdsRef.current
+    const currentIds = new Set()
+    const newOpenRequests = []
+
+    for (const request of requests) {
+      if (!request?.id) continue
+      currentIds.add(request.id)
+      if (!hasSeenInitialAdminRequestsRef.current) continue
+      if (!knownIds.has(request.id) && !isRequestArchived(request)) {
+        newOpenRequests.push(request)
+      }
+    }
+
+    if (hasSeenInitialAdminRequestsRef.current && newOpenRequests.length > 0) {
+      setMessage(
+        newOpenRequests.length === 1
+          ? t('requests.newRequestAlertOne')
+          : t('requests.newRequestAlertMany', { count: newOpenRequests.length }),
+      )
+    }
+
+    knownRequestIdsRef.current = currentIds
+    hasSeenInitialAdminRequestsRef.current = true
+  }, [isAdmin, requests, t])
 
   useEffect(() => {
     if (!customerProfile) return

@@ -116,6 +116,8 @@ export default {
   requests: {
     status: 'Status',
     noneYet: 'No requests yet.',
+    newRequestAlertOne: 'New request received.',
+    newRequestAlertMany: '{count} new requests received.',
     length: 'Length',
     quantity: 'Quantity',
     total: 'Total',

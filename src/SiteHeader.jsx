@@ -117,6 +117,16 @@ export default function SiteHeader({
     onLogoutClick()
   }
 
+  const introParagraphs = String(infoIntro)
+    .split(/\n\s*\n/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+
+  const bodyParagraphs = String(infoBody)
+    .split(/\n\s*\n/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+
   return (
     <header className="site-header">
       <div className="site-header__inner">
@@ -197,8 +207,26 @@ export default function SiteHeader({
             <h2 id="site-info-title" className="info-modal__title">
               {infoTitle}
             </h2>
-            {infoIntro ? <p className="info-modal__intro">{infoIntro}</p> : null}
-            {infoBody ? <p className="info-modal__body">{infoBody}</p> : null}
+            {introParagraphs.length
+              ? introParagraphs.map((paragraph, index) => (
+                  <p
+                    key={`intro-${index}`}
+                    className={`info-modal__paragraph${index === 0 ? ' info-modal__intro' : ''}`}
+                  >
+                    {paragraph}
+                  </p>
+                ))
+              : null}
+            {bodyParagraphs.length
+              ? bodyParagraphs.map((paragraph, index) => (
+                  <p
+                    key={`body-${index}`}
+                    className={`info-modal__paragraph${index === 0 ? ' info-modal__body' : ''}`}
+                  >
+                    {paragraph}
+                  </p>
+                ))
+              : null}
           </div>
         </div>
       ) : null}
