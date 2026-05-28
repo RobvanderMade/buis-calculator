@@ -2,6 +2,8 @@
 
 Deze functie verstuurt automatisch een e-mail naar admin via EmailJS zodra er een nieuwe aanvraag wordt aangemaakt in Realtime Database onder `requests/{requestId}`.
 
+De mail gaat via je **EmailJS SMTP-service** (bijv. `service_u7hg503` / Bendr). SMTP-host, poort en inloggegevens stel je in bij EmailJS onder **Email Services**, niet in deze code.
+
 ## 1) Dependencies installeren
 
 Voer uit in de map `functions`:
@@ -44,9 +46,9 @@ Zorg dat deze waarden in je Firebase project gezet zijn (CLI of Console), anders
 
 Gebruik in je admin-template minimaal deze variabelen:
 
-- `to_email`
-- `subject`
-- `message`
+- `to_email` — koppel in het template aan het **To Email**-veld (ontvanger)
+- `subject` — onderwerp
+- `message` — inhoud
 
 Beschikbaar voor detailweergave:
 

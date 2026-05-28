@@ -44,11 +44,11 @@ export const emailAdminOnNewRequest = onValueCreated(
     const requestId = event.params.requestId
     const data = event.data.val() || {}
 
-    const serviceId = EMAILJS_SERVICE_ID.value()
-    const templateId = EMAILJS_TEMPLATE_ID_ADMIN.value()
-    const publicKey = EMAILJS_PUBLIC_KEY.value()
-    const privateKey = EMAILJS_PRIVATE_KEY.value()
-    const to = MAIL_TO.value()
+    const serviceId = EMAILJS_SERVICE_ID.value().trim()
+    const templateId = EMAILJS_TEMPLATE_ID_ADMIN.value().trim()
+    const publicKey = EMAILJS_PUBLIC_KEY.value().trim()
+    const privateKey = EMAILJS_PRIVATE_KEY.value().trim()
+    const to = MAIL_TO.value().trim()
 
     if (!serviceId || !templateId || !publicKey || !privateKey || !to) {
       console.warn('Mail niet verstuurd: EmailJS variabelen ontbreken.')
@@ -83,28 +83,39 @@ export const emailAdminOnNewRequest = onValueCreated(
       'Deze mail is automatisch verzonden door Firebase Functions.',
     ].join('\n')
 
-    await emailjs.send(
-      serviceId,
-      templateId,
-      {
-        to_email: to,
-        subject,
-        request_number: requestNumber,
-        request_id: requestId,
-        status,
-        created_at: createdAt,
-        customer_name: customerName,
-        customer_email: customerEmail,
-        material_name: materialName,
-        total_length: totalLength,
-        quantity,
-        total_price: totalPrice,
-        message,
-      },
-      {
-        publicKey,
-        privateKey,
-      },
-    )
+    try {
+      const result = await emailjs.send(
+        serviceId,
+        templateId,
+        {
+          to_email: to,
+          subject,
+          request_number: requestNumber,
+          request_id: requestId,
+          status,
+          created_at: createdAt,
+          customer_name: customerName,
+          customer_email: customerEmail,
+          material_name: materialName,
+          total_length: totalLength,
+          quantity,
+          total_price: totalPrice,
+          message,
+        },
+        {
+          publicKey,
+          privateKey,
+        },
+      )
+      console.log('EmailJS mail verstuurd via SMTP-service:', serviceId, result.status, result.text)
+    } catch (error) {
+      console.error(
+        'EmailJS fout:',
+        error?.status,
+        error?.text || error?.message,
+        `(service=${serviceId}, template=${templateId})`,
+      )
+      throw error
+    }
   },
 )
