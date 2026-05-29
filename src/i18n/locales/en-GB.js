@@ -66,6 +66,7 @@ export default {
     okColumn: 'OK',
     rowN: 'Row {n}',
     requestErrorTitle: 'Request not sent',
+    programExplanation: 'Program guide',
   },
   login: {
     title: 'My BendR',

@@ -8,6 +8,7 @@ import HomePage from './HomePage.jsx'
 import SiteHeader from './SiteHeader.jsx'
 import SiteFooter from './SiteFooter.jsx'
 import PipeCanvas from './PipeCanvas.jsx'
+import ProgramInfoButton from './components/ProgramInfoButton.jsx'
 import { I18nProvider, useI18n } from './i18n/I18nContext.jsx'
 import { pickSiteContentForLocale } from './siteContentRepository.js'
 import { getPipeMessages } from './i18n/pipeMessages.js'
@@ -479,9 +480,6 @@ function AppContent({ path, setPath, page }) {
           setViewingRequest(null)
         }}
         onLogoutClick={handleLogout}
-        infoTitle={siteContent.info.title}
-        infoIntro={siteContent.info.intro}
-        infoBody={siteContent.info.body}
       />
       <div className="site-main">
         {isCalculatorPage && computed.error ? (
@@ -540,7 +538,14 @@ function AppContent({ path, setPath, page }) {
         <div className="container">
         <div className={`panel stack${isCalculatorReadOnly ? ' panel--readonly' : ''}`}>
           <div className="calculator-welcome">
-            <h2>{siteContent.welcome.title}</h2>
+            <div className="calculator-welcome__head">
+              <h2>{siteContent.welcome.title}</h2>
+              <ProgramInfoButton
+                infoTitle={siteContent.info.title}
+                infoIntro={siteContent.info.intro}
+                infoBody={siteContent.info.body}
+              />
+            </div>
             <p>
               {session?.customerProfile?.name
                 ? formatSiteText(siteContent.calculator.greeting, {

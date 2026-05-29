@@ -66,6 +66,7 @@ export default {
     okColumn: 'OK',
     rowN: 'Regel {n}',
     requestErrorTitle: 'Aanvraag niet verzonden',
+    programExplanation: 'Uitleg programma',
   },
   login: {
     title: 'My BendR',

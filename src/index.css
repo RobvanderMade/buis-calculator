@@ -522,10 +522,6 @@ body.modal-open {
   white-space: nowrap;
 }
 
-.site-header__info .site-header__info-label {
-  font-size: 0.9rem;
-}
-
 .info-overlay {
   z-index: 1100;
 }
@@ -795,11 +791,39 @@ body.modal-open {
   border-bottom: 1px solid var(--border-soft);
 }
 
-.calculator-welcome h2 {
-  margin: 0 0 8px;
+.calculator-welcome__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.calculator-welcome__head h2 {
+  margin: 0;
+  flex: 1 1 12rem;
   font-size: 1.25rem;
   font-weight: 600;
   color: var(--text);
+}
+
+.program-info-btn {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.program-info-btn:hover {
+  border-color: var(--accent-muted);
+  color: var(--accent);
 }
 
 .calculator-welcome p {
@@ -1697,8 +1721,7 @@ table.admin-table td:first-child {
     gap: 6px;
   }
 
-  .site-header__login span:not(.site-header__back-short),
-  .site-header__info-label {
+  .site-header__login span:not(.site-header__back-short) {
     display: none;
   }
 
