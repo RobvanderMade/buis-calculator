@@ -105,7 +105,115 @@ function arcSamplePoints(O, r, Q1, Q2, cornerP) {
   return pts
 }
 
-/** Totale buitenmaat van het aanzicht (projectie + halve buis rond middenas) */
+/**
+ * Buitenmaten in aanzicht met open uiteinden (strokeLinecap: butt).
+ * Halve buisdikte alleen loodrecht op de as, niet extra langs begin/einde.
+ */
+function computeOpenTubeViewBbox(projected, corners, strokeW, n) {
+  let minSx = Infinity
+  let maxSx = -Infinity
+  let minSy = Infinity
+  let maxSy = -Infinity
+  const half = strokeW / 2
+
+  const expand = (x, y) => {
+    minSx = Math.min(minSx, x)
+    maxSx = Math.max(maxSx, x)
+    minSy = Math.min(minSy, y)
+    maxSy = Math.max(maxSy, y)
+  }
+
+  const addPerpOffsets = (x, y, tx, ty) => {
+    const len = Math.hypot(tx, ty)
+    if (len < 1e-9) return
+    const nx = (-ty / len) * half
+    const ny = (tx / len) * half
+    expand(x + nx, y + ny)
+    expand(x - nx, y - ny)
+  }
+
+  const addSegmentStroke = (ax, ay, bx, by) => {
+    const tx = bx - ax
+    const ty = by - ay
+    addPerpOffsets(ax, ay, tx, ty)
+    addPerpOffsets(bx, by, tx, ty)
+  }
+
+  const addArcStroke = (cor) => {
+    const samples = arcSamplePoints(cor.O, cor.r, cor.Q1, cor.Q2, cor.P)
+    for (let i = 0; i < samples.length; i++) {
+      const p = samples[i]
+      let tx
+      let ty
+      if (i === 0) {
+        tx = samples[1].x - p.x
+        ty = samples[1].y - p.y
+      } else if (i === samples.length - 1) {
+        tx = p.x - samples[i - 1].x
+        ty = p.y - samples[i - 1].y
+      } else {
+        tx = samples[i + 1].x - samples[i - 1].x
+        ty = samples[i + 1].y - samples[i - 1].y
+      }
+      addPerpOffsets(p.x, p.y, tx, ty)
+    }
+  }
+
+  if (n < 1 || half <= 0) {
+    return { minSx: 0, maxSx: 0, minSy: 0, maxSy: 0 }
+  }
+
+  const startNext = corners[1]?.Q1
+    ? { x: corners[1].Q1.x, y: corners[1].Q1.y }
+    : { x: projected[1]?.sx ?? projected[0].sx + 1, y: projected[1]?.sy ?? projected[0].sy }
+  addPerpOffsets(
+    projected[0].sx,
+    projected[0].sy,
+    startNext.x - projected[0].sx,
+    startNext.y - projected[0].sy,
+  )
+
+  let current = { x: projected[0].sx, y: projected[0].sy }
+
+  for (let seg = 0; seg < n - 1; seg++) {
+    const endVertex = seg + 1
+    const isInterior = endVertex >= 1 && endVertex <= n - 2
+    const c = isInterior ? corners[endVertex] : null
+    const endPt = c
+      ? { x: c.Q1.x, y: c.Q1.y }
+      : { x: projected[endVertex].sx, y: projected[endVertex].sy }
+
+    addSegmentStroke(current.x, current.y, endPt.x, endPt.y)
+
+    if (c) {
+      addArcStroke(c)
+      current = { x: c.Q2.x, y: c.Q2.y }
+    } else {
+      current = { x: projected[endVertex].sx, y: projected[endVertex].sy }
+    }
+  }
+
+  const endPrev = corners[n - 2]?.Q2
+    ? { x: corners[n - 2].Q2.x, y: corners[n - 2].Q2.y }
+    : {
+        x: projected[n - 2]?.sx ?? projected[n - 1].sx - 1,
+        y: projected[n - 2]?.sy ?? projected[n - 1].sy,
+      }
+  addPerpOffsets(
+    projected[n - 1].sx,
+    projected[n - 1].sy,
+    projected[n - 1].sx - endPrev.x,
+    projected[n - 1].sy - endPrev.y,
+  )
+
+  if (!Number.isFinite(minSx)) {
+    return { minSx: 0, maxSx: 0, minSy: 0, maxSy: 0 }
+  }
+
+  return { minSx, maxSx, minSy, maxSy }
+}
+
+/** Totale buitenmaat van het aanzicht (projectie + buisdikte) */
 function OverallViewDimensions({ bbox, scale, view, H, W }) {
   const { minSx, maxSx, minSy, maxSy } = bbox
   const widthMm = (maxSx - minSx) / scale
@@ -566,32 +674,7 @@ export default function PipeCanvas({ lines, view, radiusMm = 0, diameterMm = 0 }
       </g>
     )
 
-    let bbMinSx = Infinity
-    let bbMaxSx = -Infinity
-    let bbMinSy = Infinity
-    let bbMaxSy = -Infinity
-    const expandBbox = (x, y) => {
-      bbMinSx = Math.min(bbMinSx, x)
-      bbMaxSx = Math.max(bbMaxSx, x)
-      bbMinSy = Math.min(bbMinSy, y)
-      bbMaxSy = Math.max(bbMaxSy, y)
-    }
-    for (const p of projected) expandBbox(p.sx, p.sy)
-    for (let vi = 1; vi <= n - 2; vi++) {
-      const cor = corners[vi]
-      if (!cor) continue
-      expandBbox(cor.Q1.x, cor.Q1.y)
-      expandBbox(cor.Q2.x, cor.Q2.y)
-      expandBbox(cor.P.x, cor.P.y)
-      for (const q of arcSamplePoints(cor.O, cor.r, cor.Q1, cor.Q2, cor.P)) expandBbox(q.x, q.y)
-    }
-    const halfStroke = strokeW / 2
-    const bbox = {
-      minSx: bbMinSx - halfStroke,
-      maxSx: bbMaxSx + halfStroke,
-      minSy: bbMinSy - halfStroke,
-      maxSy: bbMaxSy + halfStroke,
-    }
+    const bbox = computeOpenTubeViewBbox(projected, corners, strokeW, n)
 
     const dimensionsOut = dims.map((d) => (
       <SnijlijnDimension
