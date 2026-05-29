@@ -809,6 +809,9 @@ body.modal-open {
 }
 
 .program-info-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   flex-shrink: 0;
   padding: 8px 14px;
   font-size: 0.9rem;
@@ -819,6 +822,10 @@ body.modal-open {
   border-radius: var(--radius-sm);
   cursor: pointer;
   white-space: nowrap;
+}
+
+.program-info-btn__icon {
+  flex-shrink: 0;
 }
 
 .program-info-btn:hover {

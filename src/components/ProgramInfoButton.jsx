@@ -1,6 +1,28 @@
 import { useEffect, useState } from 'react'
 import { useI18n } from '../i18n/I18nContext.jsx'
 
+function InfoIcon() {
+  return (
+    <svg
+      className="program-info-btn__icon"
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
+      <path
+        d="M12 11v5M12 8h.01"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
 export default function ProgramInfoButton({ infoTitle = '', infoIntro = '', infoBody = '' }) {
   const { t } = useI18n()
   const [infoOpen, setInfoOpen] = useState(false)
@@ -54,7 +76,8 @@ export default function ProgramInfoButton({ infoTitle = '', infoIntro = '', info
         onClick={() => setInfoOpen(true)}
         aria-haspopup="dialog"
       >
-        {t('calculator.programExplanation')}
+        <InfoIcon />
+        <span>{t('calculator.programExplanation')}</span>
       </button>
       {infoOpen ? (
         <div
