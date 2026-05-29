@@ -144,6 +144,8 @@ export default {
     lastLineTooShort: 'The last row is too short. It must be at least 280 mm.',
     lineNTooShort: 'Row {row} is too short. It must be longer than {min} mm.',
     allOk: 'All rows are valid. You may continue.',
+    notAllRowsOk:
+      'Not all rows are valid (row {rows}). Check the OK column and adjust the dimensions.',
   },
   customerValidation: {
     name: 'Please enter your name.',

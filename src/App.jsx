@@ -27,7 +27,7 @@ import {
   calculateTotalLength,
   rowSegmentLengths,
   rowSegmentStatuses,
-  validateLines,
+  validateRowsForSubmit,
 } from './pipeMath.js'
 
 const initialRows = () =>
@@ -366,7 +366,12 @@ function AppContent({ path, setPath, page }) {
       return
     }
 
-    const validation = validateLines(lines, material, pipeMessages)
+    if (computed.error) {
+      setRequestStatus(computed.error)
+      return
+    }
+
+    const validation = validateRowsForSubmit(lines, segmentStatuses, pipeMessages)
     if (!validation.ok) {
       setRequestStatus(validation.message)
       return

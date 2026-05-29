@@ -151,6 +151,43 @@ export function validateLines(lines, material, messages) {
 }
 
 /**
+ * Validatie vóór aanvraag: alle ingevulde regels moeten OK zijn (overeenkomst met OK-kolom).
+ * Lege regels (0,0,0) worden overgeslagen.
+ */
+export function validateRowsForSubmit(lines, statuses, messages) {
+  const msg = messages || {}
+  const failing = []
+  let hasAnyLine = false
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    const hasValues = line.x !== 0 || line.y !== 0 || line.z !== 0
+    if (hasValues) hasAnyLine = true
+    if (hasValues && !statuses[i]?.ok) {
+      failing.push({ row: i + 1, message: statuses[i].message })
+    }
+  }
+
+  if (!hasAnyLine) {
+    return { ok: false, message: msg.noLinesToCheck || 'Geen lijnen ingevuld om te controleren.' }
+  }
+
+  if (failing.length > 0) {
+    return {
+      ok: false,
+      message:
+        failing.length === 1
+          ? failing[0].message
+          : typeof msg.notAllRowsOk === 'function'
+            ? msg.notAllRowsOk(failing.map((f) => f.row).join(', '))
+            : `Niet alle regels zijn in orde (regel ${failing.map((f) => f.row).join(', ')}).`,
+    }
+  }
+
+  return { ok: true, message: msg.allOk || 'Alle lijnen zijn correct! Je kunt doorgaan.' }
+}
+
+/**
  * Prijs per stuk (zelfde formule als origineel, met guards voor randgevallen).
  * @param {typeof DEFAULT_PRICING} [pricing]
  */

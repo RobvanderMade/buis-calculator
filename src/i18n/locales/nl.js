@@ -144,6 +144,8 @@ export default {
     lastLineTooShort: 'De laatste lijn is te kort. Deze moet minimaal 280 mm zijn.',
     lineNTooShort: 'Lijn {row} is te kort. Deze moet langer zijn dan {min} mm.',
     allOk: 'Alle lijnen zijn correct! Je kunt doorgaan.',
+    notAllRowsOk:
+      'Niet alle regels zijn in orde (regel {rows}). Controleer de OK-kolom en pas de maten aan.',
   },
   customerValidation: {
     name: 'Vul Naam in.',

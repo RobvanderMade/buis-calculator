@@ -12,6 +12,7 @@ export function getPipeMessages(t) {
     lastLineTooShort: t('pipeValidation.lastLineTooShort'),
     lineNTooShort: (row, min) => t('pipeValidation.lineNTooShort', { row, min }),
     allOk: t('pipeValidation.allOk'),
+    notAllRowsOk: (rows) => t('pipeValidation.notAllRowsOk', { rows }),
     totalLengthTooLong: (max) => t('calculator.totalLengthTooLong', { max }),
   }
 }
