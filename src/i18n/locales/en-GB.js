@@ -65,6 +65,7 @@ export default {
     coordZ: 'Z (mm)',
     okColumn: 'OK',
     rowN: 'Row {n}',
+    requestErrorTitle: 'Request not sent',
   },
   login: {
     title: 'My BendR',

@@ -124,6 +124,7 @@ function AppContent({ path, setPath, page }) {
   const [session, setSession] = useState(null)
   const [authReady, setAuthReady] = useState(!auth)
   const [requestStatus, setRequestStatus] = useState('')
+  const [requestErrorPopup, setRequestErrorPopup] = useState('')
   const [rawSiteContent, setRawSiteContent] = useState(DEFAULT_SITE_CONTENT)
   const [pricing, setPricing] = useState(DEFAULT_PRICING)
   const [viewingRequest, setViewingRequest] = useState(null)
@@ -212,6 +213,34 @@ function AppContent({ path, setPath, page }) {
       window.removeEventListener('keydown', onKeyDown)
     }
   }, [isGridFullscreen])
+
+  useEffect(() => {
+    if (!requestErrorPopup) return undefined
+
+    const scrollY = window.scrollY
+    document.body.classList.add('modal-open')
+    document.body.style.position = 'fixed'
+    document.body.style.top = `-${scrollY}px`
+    document.body.style.left = '0'
+    document.body.style.right = '0'
+    document.body.style.width = '100%'
+
+    function onKeyDown(event) {
+      if (event.key === 'Escape') setRequestErrorPopup('')
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.body.classList.remove('modal-open')
+      document.body.style.position = ''
+      document.body.style.top = ''
+      document.body.style.left = ''
+      document.body.style.right = ''
+      document.body.style.width = ''
+      window.scrollTo(0, scrollY)
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [requestErrorPopup])
 
   useEffect(() => {
     if (!auth) {
@@ -352,28 +381,29 @@ function AppContent({ path, setPath, page }) {
 
   async function submitRequest() {
     setRequestStatus('')
+    setRequestErrorPopup('')
 
     if (session?.role !== 'customer') {
-      setRequestStatus(siteContent.calculator.loginRequired)
+      setRequestErrorPopup(siteContent.calculator.loginRequired)
       setLoginInitialMode('register')
       setLoginPanelOpen(true)
       return
     }
 
     if (!session.customerProfile) {
-      setRequestStatus(siteContent.calculator.profileRequired)
+      setRequestErrorPopup(siteContent.calculator.profileRequired)
       setLoginPanelOpen(true)
       return
     }
 
     if (computed.error) {
-      setRequestStatus(computed.error)
+      setRequestErrorPopup(computed.error)
       return
     }
 
     const validation = validateRowsForSubmit(lines, segmentStatuses, pipeMessages)
     if (!validation.ok) {
-      setRequestStatus(validation.message)
+      setRequestErrorPopup(validation.message)
       return
     }
 
@@ -400,7 +430,7 @@ function AppContent({ path, setPath, page }) {
       )
       startNewCalculation({ clearStatus: false })
     } catch (error) {
-      setRequestStatus(
+      setRequestErrorPopup(
         formatSiteText(siteContent.calculator.requestSaveFailed, { error: error.message }),
       )
     }
@@ -769,6 +799,35 @@ function AppContent({ path, setPath, page }) {
           onLogin={handleLogin}
           onClose={() => setLoginPanelOpen(false)}
         />
+      ) : null}
+      {requestErrorPopup ? (
+        <div
+          className="login-overlay request-error-overlay"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="request-error-title"
+          aria-describedby="request-error-message"
+          onClick={() => setRequestErrorPopup('')}
+        >
+          <div
+            className="login-card request-error-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="request-error-modal__close canvas-close-btn"
+              onClick={() => setRequestErrorPopup('')}
+              aria-label={t('common.close')}
+            >
+              ×
+            </button>
+            <h2 id="request-error-title">{t('calculator.requestErrorTitle')}</h2>
+            <p id="request-error-message">{requestErrorPopup}</p>
+            <button type="button" className="primary" onClick={() => setRequestErrorPopup('')}>
+              {t('common.close')}
+            </button>
+          </div>
+        </div>
       ) : null}
     </div>
   )

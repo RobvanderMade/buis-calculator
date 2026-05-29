@@ -568,6 +568,39 @@ body.modal-open {
   margin-top: 0.8rem;
 }
 
+.request-error-overlay {
+  z-index: 1150;
+}
+
+.request-error-modal {
+  position: relative;
+  width: min(480px, 100%);
+}
+
+.request-error-modal__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+.request-error-modal h2 {
+  margin: 0 2rem 12px 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.request-error-modal p {
+  margin: 0 0 20px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.request-error-modal .primary {
+  width: 100%;
+}
+
 .site-header__actions {
   display: flex;
   align-items: center;
