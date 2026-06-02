@@ -349,6 +349,14 @@ function AppContent({ path, setPath, page }) {
     setPath(nextPath)
   }
 
+  function goBackOrHome() {
+    if (window.history.length > 1) {
+      window.history.back()
+      return
+    }
+    navigate('/')
+  }
+
   /** Laadt een opgeslagen aanvraag in de calculator (klant of admin). */
   function openRequestInCalculator(request) {
     if (!request) return
@@ -469,6 +477,7 @@ function AppContent({ path, setPath, page }) {
             : ''
         }
         showBackButton={page !== 'home'}
+        onBackClick={goBackOrHome}
         onAccountClick={() => {
           if (session?.role === 'customer') {
             navigate('/account')

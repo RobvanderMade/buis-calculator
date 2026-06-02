@@ -32,6 +32,7 @@ export default function SiteHeader({
   showBackButton = false,
   onAccountClick,
   onCalculatorClick,
+  onBackClick,
   onHomeClick,
   onLogoutClick,
   showCalculatorInMenu = false,
@@ -87,7 +88,7 @@ export default function SiteHeader({
             <button
               type="button"
               className="site-header__login site-header__back"
-              onClick={onHomeClick}
+              onClick={onBackClick ?? onHomeClick}
               aria-label={t('common.back')}
             >
               <span className="site-header__back-short" aria-hidden="true">
