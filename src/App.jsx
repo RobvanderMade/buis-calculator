@@ -97,9 +97,18 @@ function defaultMaterialTypeLabel(locale) {
   return locale === 'en-GB' ? 'Welded plain steel' : 'Staal blank gelast'
 }
 
+function localizeMaterialTypeLabel(typeLabel, locale) {
+  const normalized = String(typeLabel || '').trim().toLowerCase()
+  if (locale === 'en-GB' && normalized === 'staal blank gelast') {
+    return 'Welded plain steel'
+  }
+  return typeLabel
+}
+
 function materialLabel(material, locale) {
   if (!material) return ''
-  const soort = material.materiaalSoort || defaultMaterialTypeLabel(locale)
+  const baseSoort = material.materiaalSoort || defaultMaterialTypeLabel(locale)
+  const soort = localizeMaterialTypeLabel(baseSoort, locale)
   if (soort) {
     return `${soort} - ${material.materiaal}`
   }
