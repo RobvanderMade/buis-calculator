@@ -93,9 +93,13 @@ function resolveMaterialIndex(requestMaterial, materialsList) {
   return 0
 }
 
-function materialLabel(material) {
+function defaultMaterialTypeLabel(locale) {
+  return locale === 'en-GB' ? 'Welded plain steel' : 'Staal blank gelast'
+}
+
+function materialLabel(material, locale) {
   if (!material) return ''
-  const soort = material.materiaalSoort || 'Staal blank gelast'
+  const soort = material.materiaalSoort || defaultMaterialTypeLabel(locale)
   if (soort) {
     return `${soort} - ${material.materiaal}`
   }
@@ -586,7 +590,7 @@ function AppContent({ path, setPath, page }) {
             >
               {materials.map((m, i) => (
                 <option key={m.id || m.materiaal} value={i}>
-                  {materialLabel(m)}
+                  {materialLabel(m, locale)}
                 </option>
               ))}
             </select>
