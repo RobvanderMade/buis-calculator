@@ -3,6 +3,7 @@ import { database } from './firebase'
 import { DEFAULT_MATERIALS } from './materials'
 
 const MATERIALS_PATH = 'materials'
+const DEFAULT_MATERIAAL_SOORT = 'Staal blank gelast'
 
 function toNumber(value, fallback = 0) {
   const number = Number(value)
@@ -12,6 +13,7 @@ function toNumber(value, fallback = 0) {
 function normalizeMaterial(material, fallbackId, sortOrder) {
   return {
     id: String(material.id || fallbackId),
+    materiaalSoort: String(material.materiaalSoort || DEFAULT_MATERIAAL_SOORT),
     materiaal: String(material.materiaal || ''),
     prijsPerMTR: toNumber(material.prijsPerMTR),
     klemLengte: toNumber(material.klemLengte),

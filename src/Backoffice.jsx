@@ -43,8 +43,11 @@ import {
 } from './siteContentRepository'
 import { useI18n } from './i18n/I18nContext.jsx'
 
+const DEFAULT_MATERIAAL_SOORT = 'Staal blank gelast'
+
 const emptyMaterial = {
   id: '',
+  materiaalSoort: DEFAULT_MATERIAAL_SOORT,
   materiaal: '',
   prijsPerMTR: 0,
   klemLengte: 0,
@@ -1047,7 +1050,15 @@ export default function Backoffice({
           </p>
           <form className="material-form" onSubmit={handleSaveMaterial}>
             <label>
-              Naam
+              Materiaal
+              <input
+                type="text"
+                value={editing.materiaalSoort}
+                onChange={(event) => updateEditing('materiaalSoort', event.target.value)}
+              />
+            </label>
+            <label>
+              Naam / omschrijving
               <input
                 type="text"
                 value={editing.materiaal}
@@ -1114,6 +1125,7 @@ export default function Backoffice({
               <thead>
                 <tr>
                   <th>Materiaal</th>
+                  <th>Naam</th>
                   <th>Prijs/m</th>
                   <th>Klem</th>
                   <th>Radius</th>
@@ -1124,13 +1136,14 @@ export default function Backoffice({
               <tbody>
                 {materials.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="hint">
+                    <td colSpan={7} className="hint">
                       Geen materialen gevonden in Firebase.
                     </td>
                   </tr>
                 ) : null}
                 {materials.map((material) => (
                   <tr key={material.id}>
+                    <td>{material.materiaalSoort || DEFAULT_MATERIAAL_SOORT}</td>
                     <td>{material.materiaal}</td>
                     <td>{material.prijsPerMTR}</td>
                     <td>{material.klemLengte}</td>

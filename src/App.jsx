@@ -93,6 +93,15 @@ function resolveMaterialIndex(requestMaterial, materialsList) {
   return 0
 }
 
+function materialLabel(material) {
+  if (!material) return ''
+  const soort = material.materiaalSoort || 'Staal blank gelast'
+  if (soort) {
+    return `${soort} - ${material.materiaal}`
+  }
+  return material.materiaal
+}
+
 export default function App() {
   const [path, setPath] = useState(window.location.pathname)
   const page = resolvePage(path)
@@ -568,7 +577,7 @@ function AppContent({ path, setPath, page }) {
             >
               {materials.map((m, i) => (
                 <option key={m.id || m.materiaal} value={i}>
-                  {m.materiaal}
+                  {materialLabel(m)}
                 </option>
               ))}
             </select>
